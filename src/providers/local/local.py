@@ -8,7 +8,10 @@ from .utils import get_event_time, get_events_for_game
 from ..base import BaseProvider
 
 # NOTE: defined here since only used in local provider
-EVENT_PUSH_INTERVAL = 20 / time_config.SIMULATION_SPEED  # about 1 event every 2 seconds
+EVENTS_PER_PUSH = 100
+EVENTS_PER_SECOND = 0.5
+
+EVENT_PUSH_INTERVAL = (EVENTS_PER_PUSH / EVENTS_PER_SECOND) / time_config.SIMULATION_SPEED  
 SIMULATE_PROCESSING = 0.5 / time_config.SIMULATION_SPEED
 SIMULATE_INSERTION = 0.5 / time_config.SIMULATION_SPEED
 

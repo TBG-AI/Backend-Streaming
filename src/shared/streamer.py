@@ -47,6 +47,7 @@ class SingleGameStreamer:
                 self._send_and_log_message(data)
                 
         # After the loop ends, send stop message
+        # NOTE: Assumes all data is guaranteed processed here. 
         final_data = {'game_id': self.game_id, 'type': 'stop'}
         self._send_and_log_message(final_data)
         

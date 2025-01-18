@@ -78,7 +78,7 @@ class TimeConfig:
     """
     USE_REAL_TIME: bool = False
     SIMULATION_START_TIME: datetime = datetime(2024, 9, 28, 15, 00, 0)
-    SIMULATION_SPEED: float = 100
+    SIMULATION_SPEED: float = 500
 
     def __init__(self):
         # # Decide if we use real time or simulated time
