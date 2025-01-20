@@ -20,5 +20,6 @@ class MatchRepository:
         if not new_events:
             return
         self.event_store.save_events(agg.match_id, new_events)
+        
         agg.clear_uncommitted_events()
 

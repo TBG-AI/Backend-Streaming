@@ -1,4 +1,4 @@
-# Directory: src/backend_streaming/providers/opta/opta_provider.py
+# Directory: src/backend_streaming/providers/opta/services/opta_provider.py
 import json
 import time
 import logging
@@ -15,11 +15,12 @@ from backend_streaming.utils.logging import setup_logger
 from backend_streaming.providers.opta.infra.db import get_session
 
 # Domain/Infrastructure imports:
+from backend_streaming.providers.opta.services.queries.match_projector import MatchProjection
 from backend_streaming.providers.opta.domain.aggregates.match_aggregate import MatchAggregate
 from backend_streaming.providers.opta.infra.repo.event_store.local import EventStore, LocalFileEventStore
-from backend_streaming.providers.opta.infra.repo.match_repo import MatchRepository
+from backend_streaming.providers.opta.infra.repo.match import MatchRepository
 from backend_streaming.providers.opta.infra.repo.event_store.postgres import PostgresEventStore
-
+from backend_streaming.providers.opta.infra.repo.match_projection import MatchProjectionRepository  
 
 class OptaStreamer:
     def __init__(self, 
@@ -27,7 +28,9 @@ class OptaStreamer:
                  tournament_id: str = EPL_TOURNAMENT_ID,
                  log_file: Optional[str] =  None,
                  event_store_filename: Optional[str] = None,
-                 event_store: Optional[EventStore] = None):
+                 event_store: Optional[EventStore] = None,
+                 match_projection: Optional[MatchProjection] = None,
+                 match_projection_repo: Optional[MatchProjectionRepository] = None):
         """
         We'll pass in a match_id that we want to track.
         We'll keep a local file event store, so we can replay domain events across runs.
@@ -47,10 +50,14 @@ class OptaStreamer:
         
         self.logger = setup_logger(__name__, log_file=log_file)
         
-        # We use a file-based event store + repository
+        
         self.event_store = event_store or LocalFileEventStore(filename=event_store_filename)
         self.match_repo = MatchRepository(self.event_store)
-
+        
+        # TODO: Implement match projection repo? (Not yet used -- Ignore for now)
+        self.match_projection_repo = match_projection_repo or MatchProjectionRepository(session_factory=get_session)
+        self.match_projection = match_projection or MatchProjection()
+        
         # Load aggregator from existing domain events
         self.agg = self.match_repo.load(match_id)  # replays everything
         self.match_id = match_id

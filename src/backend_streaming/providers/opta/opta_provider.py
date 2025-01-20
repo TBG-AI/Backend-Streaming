@@ -17,7 +17,7 @@ from backend_streaming.providers.opta.infra.db import get_session
 # Domain/Infrastructure imports:
 from backend_streaming.providers.opta.domain.aggregates.match_aggregate import MatchAggregate
 from backend_streaming.providers.opta.infra.repo.event_store.local import EventStore, LocalFileEventStore
-from backend_streaming.providers.opta.infra.repo.match_repo import MatchRepository
+from backend_streaming.providers.opta.infra.repo.match import MatchRepository
 from backend_streaming.providers.opta.infra.repo.event_store.postgres import PostgresEventStore
 
 

@@ -6,7 +6,7 @@ from backend_streaming.providers.opta.constants import EPL_TOURNAMENT_ID
 from backend_streaming.providers.opta.infra.api import get_teams, get_squads
 from backend_streaming.providers.opta.infra.db import init_db
 from backend_streaming.providers.opta.infra.db import get_session
-from backend_streaming.providers.opta.infra.repo.team_player_repo import TeamPlayerRepository
+from backend_streaming.providers.opta.infra.repo.team_player import TeamPlayerRepository
 from backend_streaming.providers.opta.domain.entities.teams import Team
 from backend_streaming.providers.opta.domain.entities.players import Player
 from backend_streaming.providers.opta.infra.repo.event_store.postgres import PostgresEventStore

@@ -1,5 +1,5 @@
 # Directory: src/backend_streaming/providers/opta/infra/models.py
-from sqlalchemy import Column, String, Integer, ForeignKey, DateTime, JSON
+from sqlalchemy import Column, String, Integer, ForeignKey, DateTime, JSON, Float
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -73,3 +73,46 @@ class DomainEventModel(Base):
     def __repr__(self):
         return (f"<DomainEventModel(domain_event_id='{self.domain_event_id}', "
                 f"event_type='{self.event_type}', aggregate_id='{self.aggregate_id}')>")
+
+
+class MatchProjectionModel(Base):
+    """
+    Stores the 'current state' of a match's events (for quick queries).
+    This is your read model/projection table.
+    """
+    __tablename__ = 'match_projection'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    
+    match_id = Column(String, nullable=False, index=True)
+    event_id = Column(Integer, nullable=False, index=True)  # feed_event_id
+    local_event_id = Column(Integer, nullable=True)
+    type_id = Column(Integer, nullable=True)
+    period_id = Column(Integer, nullable=True)
+    time_min = Column(Integer, nullable=True)
+    time_sec = Column(Integer, nullable=True)
+
+    # Foreign keys pointing to players / teams
+    # If the feed always gives them as strings, use String type. If numeric, use Integer.
+    player_id = Column(String, ForeignKey('players.player_id'), nullable=True)
+    contestant_id = Column(String, ForeignKey('teams.team_id'), nullable=True)
+
+    # Example relationships - optional but useful for easier joining
+    player = relationship("PlayerModel", backref="match_events", lazy='joined')
+    team = relationship("TeamModel", backref="match_events", lazy='joined')
+
+    player_name = Column(String, nullable=True)
+    outcome = Column(Integer, nullable=True)
+    x = Column(Float, nullable=True)
+    y = Column(Float, nullable=True)
+    qualifiers = Column(JSON, nullable=True)
+    
+    time_stamp = Column(String, nullable=True)
+    last_modified = Column(String, nullable=True)
+
+    def __repr__(self):
+        return (f"<MatchProjectionModel("
+                f"match_id='{self.match_id}', "
+                f"event_id='{self.event_id}', "
+                f"player_id='{self.player_id}', "
+                f"contestant_id='{self.contestant_id}')>")
