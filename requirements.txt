@@ -1,2 +1,7 @@
 requests==2.32.3
 colorlog==6.9.0
+schedule
+sqlalchemy
+sqlalchemy_utils
+psycopg2
+websocket-client

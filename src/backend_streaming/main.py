@@ -4,11 +4,11 @@ import logging
 from typing import List
 from db.core.factory import DatabaseClientFactory as db_factory
 
-from src.config.logging import setup_logging
-from src.shared.streamer import SingleGameStreamer
-from src.providers.local.local import LocalDataProvider
-from src.providers.local.utils import reset_all
-from src.constants import GAMES_DIR
+from backend_streaming.config.logging import setup_logging
+from backend_streaming.shared.streamer import SingleGameStreamer
+from backend_streaming.providers.local.local import LocalDataProvider
+from backend_streaming.providers.local.utils import reset_all
+from backend_streaming.constants import GAMES_DIR
 
 # Configure logging first, before other imports
 setup_logging()

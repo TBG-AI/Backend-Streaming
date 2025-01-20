@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import List
 from db.postgres.constants import Operations
 from db.core.factory import DatabaseClientFactory as db_factory
-from src.constants import GAMES_DIR
+from backend_streaming.constants import GAMES_DIR
 
 logger = logging.getLogger(__name__)
 

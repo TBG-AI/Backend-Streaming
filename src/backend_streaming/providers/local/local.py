@@ -2,8 +2,8 @@ import json
 import time
 from typing import Tuple
 
-from src.config.time import time_config
-from src.constants import GAMES_DIR
+from backend_streaming.config.time import time_config
+from backend_streaming.constants import GAMES_DIR
 from .utils import get_event_time, get_events_for_game
 from ..base import BaseProvider
 

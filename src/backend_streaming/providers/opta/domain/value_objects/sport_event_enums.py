@@ -1,0 +1,187 @@
+# Directory: src/backend_streaming/providers/opta/domain/value_objects/event_enums.py
+
+from enum import IntEnum
+
+class EventType(IntEnum):
+    """
+    Enumeration of main Event Types from Opta/StatsPerform feeds.
+    Use EventType.<NAME>.value to get the numeric ID (e.g., EventType.PASS_.value == 1)
+    """
+    PASS_ = 1               # Because 'pass' is a Python keyword
+    OFFSIDE_PASS = 2
+    TAKE_ON = 3
+    FOUL = 4
+    OUT = 5
+    CORNER_AWARDED = 6
+    TACKLE = 7
+    INTERCEPTION = 8
+    # (Skipping 9 because it's not in the official list)
+    SAVE = 10
+    CLAIM = 11
+    CLEARANCE = 12
+    MISS = 13
+    POST = 14
+    ATTEMPT_SAVED = 15
+    GOAL = 16
+    CARD = 17
+    PLAYER_OFF = 18
+    PLAYER_ON = 19
+    PLAYER_RETIRED = 20
+    PLAYER_RETURNS = 21
+    PLAYER_BECOMES_GOALKEEPER = 22
+    GOALKEEPER_BECOMES_PLAYER = 23
+    CONDITION_CHANGE = 24
+    OFFICIAL_CHANGE = 25
+    START_DELAY = 27
+    END_DELAY = 28
+    TEMPORARY_STOP = 29
+    END = 30
+    START = 32
+    TEAM_SETUP = 34
+    PLAYER_CHANGED_JERSEY_NUMBER = 36
+    COLLECTION_END = 37
+    TEMP_GOAL = 38
+    TEMP_ATTEMPT = 39
+    FORMATION_CHANGE = 40
+    PUNCH = 41
+    GOOD_SKILL = 42
+    DELETED_EVENT = 43
+    AERIAL = 44
+    CHALLENGE = 45
+    RESCINDED_CARD = 47
+    BALL_RECOVERY = 49
+    DISPOSSESSED = 50
+    ERROR = 51
+    KEEPER_PICK_UP = 52
+    CROSS_NOT_CLAIMED = 53
+    SMOTHER = 54
+    OFFSIDE_PROVOKED = 55
+    FOUL_THROW_IN = 57
+    PENALTY_FACED = 58
+    KEEPER_SWEEPER = 59
+    CHANCE_MISSED = 60
+    BALL_TOUCH = 61
+    TEMP_SAVE = 63
+    RESUME = 64
+    CONTENTIOUS_REFEREE_DECISION = 65
+    FIFTY_FIFTY = 67
+    REFEREE_DROP_BALL = 68
+    INJURY_TIME_ANNOUNCEMENT = 70
+    COACH_SETUP = 71
+    CAUGHT_OFFSIDE = 72
+    OTHER_BALL_CONTACT = 73
+    BLOCKED_PASS = 74
+    DELAYED_START = 75
+    EARLY_END = 76
+    COVERAGE_INTERRUPTION = 79
+    DROP_OF_BALL = 80
+    OBSTACLE = 81
+    CONTROL = 82
+    ATTEMPTED_TACKLE = 83
+    DELETED_AFTER_REVIEW = 84
+
+
+class QualifierType(IntEnum):
+    """
+    Enumeration of Qualifier Types from Opta/StatsPerform feeds.
+    Use QualifierType.<NAME>.value to get the numeric ID (e.g., QualifierType.LONG_BALL.value == 1)
+    """
+    LONG_BALL = 1
+    CROSS = 2
+    HEAD_PASS = 3
+    THROUGH_BALL = 4
+    FREE_KICK_TAKEN = 5
+    CORNER_TAKEN = 6
+    PLAYERS_CAUGHT_OFFSIDE = 7
+    GOAL_DISALLOWED = 8
+    PENALTY = 9
+    HANDBALL = 10
+    DANGEROUS_PLAY = 12
+    FOUL = 13
+    LAST_LINE = 14
+    HEAD = 15
+    RIGHT_FOOTED = 20
+    OTHER_BODY_PART = 21
+    REGULAR_PLAY = 22
+    FAST_BREAK = 23
+    SET_PIECE = 24
+    FROM_CORNER = 25
+    FREE_KICK = 26
+    OWN_GOAL = 28
+    ASSISTED = 29
+    YELLOW_CARD = 31
+    SECOND_YELLOW = 32
+    RED_CARD = 33
+    TIME_WASTING = 37
+    VIOLENT_CONDUCT = 36
+    EXCESSIVE_CELEBRATION = 38
+    ARGUMENT = 35
+    INJURY = 41
+    TACTICAL = 42
+    DELETED_EVENT = 43
+    PLAYER_POSITION = 44
+    RELATED_EVENT_ID = 55
+    ZONE = 56
+    END_TYPE = 57
+    JERSEY_NUMBER = 59
+    BLOCKED = 82
+    DEF_BLOCK = 94
+    PASS_END_X = 140
+    PASS_END_Y = 141
+    DELETED_EVENT_TYPE = 144
+    FORMATION_SLOT = 145
+    BLOCKED_X_COORDINATE = 146
+    BLOCKED_Y_COORDINATE = 147
+    DIRECT = 152
+    NOT_PAST_GOAL_LINE = 153
+    INTENTIONAL_ASSIST = 154
+    CHIPPED = 155
+    LAY_OFF = 156
+    LAUNCH = 157
+    OUT_OF_PLAY = 167
+    PARried_SAFE = 173
+    PARried_DANGER = 174
+    FINGERTIP = 175
+    CAUGHT = 176
+    COLLECTED = 177
+    STANDING = 178
+    DIVING = 179
+    DISSENT = 184
+    BLOCKED_CROSS = 185
+    SCORED = 186
+    SAVED = 187
+    MISSED = 188
+    NOT_VISIBLE = 189
+    CAPTAIN = 194
+    SWITCH_OF_PLAY = 196
+    GK_HOOF = 198
+    GK_KICK_FROM_HANDS = 199
+    REFEREE_STOP = 200
+    REFEREE_DELAY = 201
+    BIG_CHANCE = 214
+    INDIVIDUAL_PLAY = 215
+    SECOND_RELATED_EVENT_ID = 216
+    SECOND_ASSIST = 218
+    DRINKS_BREAK = 246
+    OFFSIDE = 247
+    GOAL_LINE = 248
+    TEMP_SHOT_ON = 249
+    TEMP_BLOCKED = 250
+    TEMP_POST = 251
+    TEMP_MISSED = 252
+    FOLLOWS_A_DRIBBLE = 254
+    HIT_WOODWORK = 138
+    GK_X_COORDINATE = 230
+    GK_Y_COORDINATE = 231
+    OPPOSITE_RELATED_EVENT_ID = 233
+    BLOCKED_PASS_QUALIFIER = 236
+    FAIR_PLAY = 238
+    INDIRECT = 241
+    UNSPORTING_BEHAVIOUR = 243
+    PENALTY_SET_PIECE = 317
+    FIRST_TOUCH = 328
+    RECKLESS_OFFENCE = 392
+    TACTICAL_FOUL = 393
+    CORNER_NOT_TAKEN = 394
+    MIS_HIT = 391
+    # etc. Add more as needed from the official list...
