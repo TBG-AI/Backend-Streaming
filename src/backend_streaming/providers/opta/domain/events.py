@@ -19,13 +19,13 @@ class GlobalEventAdded(DomainEvent):
     period_id: int
     time_min: int
     time_sec: int
-    contestant_id: str
-    player_id: str
-    player_name: str
+    contestant_id: Optional[str] = None
+    player_id: Optional[str] = None
+    player_name: Optional[str] = None
     outcome: Optional[int] = None
     x: Optional[float] = None
     y: Optional[float] = None
-    qualifiers: Dict[int, Qualifier] = field(default_factory=dict)
+    qualifiers: Dict[int, int] = field(default_factory=dict) # {qualifierId: value}
     time_stamp: Optional[str] = None       # "2024-12-30T20:07:18.992Z"
     last_modified: Optional[str] = None    # "2024-12-31T03:28:08Z"
 
@@ -38,7 +38,7 @@ class EventTypeChanged(DomainEvent):
 @dataclass(frozen=True)
 class QualifiersChanged(DomainEvent):
     feed_event_id: int
-    new_qualifiers: Dict[int, Optional[str]]
+    new_qualifiers: Optional[Dict[int, Optional[str]]] = None
     """
     new_qualifiers is a dict {qualifierId: value}, 
     representing the entire updated set of qualifiers for this event.

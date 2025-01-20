@@ -63,6 +63,14 @@ class PostgresEventStore(EventStore):
             session.commit()
         finally:
             session.close()
+            
+    def delete_events(self, aggregate_id: str) -> None:
+        session: Session = self.session_factory()
+        try:
+            session.query(DomainEventModel).filter_by(aggregate_id=aggregate_id).delete()
+            session.commit()
+        finally:
+            session.close()
 
     # -------------- Internal serialization/deserialization --------------
 
@@ -84,7 +92,7 @@ class PostgresEventStore(EventStore):
                 "x": evt.x,
                 "y": evt.y,
                 # We store qualifiers as {qid: val}
-                "qualifiers": {q_id: q.value for (q_id, q) in evt.qualifiers.items()},
+                "qualifiers": evt.qualifiers,
                 "time_stamp": evt.time_stamp,
                 "last_modified": evt.last_modified
             }
@@ -111,11 +119,6 @@ class PostgresEventStore(EventStore):
                            payload: dict) -> DomainEvent:
         """Convert the JSON row back into the correct DomainEvent object."""
         if event_type == "GlobalEventAdded":
-            # Rebuild the qualifiers as a dict of {qid: Qualifier(...)}
-            qual_dict = {
-                int(qid): Qualifier(int(qid), val)
-                for qid, val in payload["qualifiers"].items()
-            }
             return GlobalEventAdded(
                 domain_event_id=domain_event_id,
                 aggregate_id=aggregate_id,
@@ -133,7 +136,7 @@ class PostgresEventStore(EventStore):
                 outcome=payload["outcome"],
                 x=payload["x"],
                 y=payload["y"],
-                qualifiers=qual_dict,
+                qualifiers=payload["qualifiers"],
                 time_stamp=payload["time_stamp"],
                 last_modified=payload["last_modified"]
             )

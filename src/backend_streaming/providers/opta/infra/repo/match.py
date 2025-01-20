@@ -21,5 +21,8 @@ class MatchRepository:
             return
         self.event_store.save_events(agg.match_id, new_events)
         
-        agg.clear_uncommitted_events()
+        # agg.clear_uncommitted_events()
+        
+    def delete(self, match_id: str):
+        self.event_store.delete_events(match_id)
 

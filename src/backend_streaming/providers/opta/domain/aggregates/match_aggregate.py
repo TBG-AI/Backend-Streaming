@@ -1,5 +1,5 @@
 # Directory: src/backend_streaming/providers/opta/domain/match_aggregate.py
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 from uuid import uuid4
 from datetime import datetime
 from backend_streaming.providers.opta.domain.events import DomainEvent, GlobalEventAdded, EventTypeChanged, QualifiersChanged
@@ -61,7 +61,7 @@ class MatchAggregate:
     # Public "handle" methods
     # ------------------
 
-    def handle_new_event(self, data: dict):
+    def handle_new_event(self, event: EventInMatch):
         """
         data is the raw dict from the API, e.g. {
           "id": 2762916859,
@@ -76,21 +76,21 @@ class MatchAggregate:
             aggregate_id=self.match_id,
             occurred_on=datetime.utcnow(),
 
-            feed_event_id=data["id"],
-            local_event_id=data["eventId"],
-            type_id=data["typeId"],
-            period_id=data["periodId"],
-            time_min=data["timeMin"],
-            time_sec=data["timeSec"],
-            contestant_id=data.get("contestantId", ""),
-            player_id=data.get("playerId", ""),
-            player_name=data.get("playerName", ""),
-            outcome=data.get("outcome"),
-            x=data.get("x"),
-            y=data.get("y"),
-            qualifiers=self._build_qualifier_dict(data.get("qualifier", [])),
-            time_stamp=data.get("timeStamp"),
-            last_modified=data.get("lastModified")
+            feed_event_id=event.feed_event_id,
+            local_event_id=event.local_event_id,
+            type_id=event.type_id,
+            period_id=event.period_id,
+            time_min=event.time_min,
+            time_sec=event.time_sec,
+            contestant_id=event.contestant_id,
+            player_id=event.player_id,
+            player_name=event.player_name,
+            outcome=event.outcome,
+            x=event.x,
+            y=event.y,
+            qualifiers=self._build_qualifier_dict(event.qualifiers),
+            time_stamp=event.time_stamp,
+            last_modified=event.last_modified
         )
         self._record(domain_evt)
 
@@ -105,13 +105,13 @@ class MatchAggregate:
         )
         self._record(domain_evt)
 
-    def handle_qualifiers_changed(self, feed_event_id: int, new_qualifiers: Dict[int, Optional[str]]):
+    def handle_qualifiers_changed(self, feed_event_id: int, new_qualifiers: Optional[List[Qualifier]]):
         domain_evt = QualifiersChanged(
             domain_event_id=str(uuid4()),
             aggregate_id=self.match_id,
             occurred_on=datetime.utcnow(),
             feed_event_id=feed_event_id,
-            new_qualifiers=new_qualifiers
+            new_qualifiers=self._build_qualifier_dict(new_qualifiers)
         )
         self._record(domain_evt)
 
@@ -125,10 +125,13 @@ class MatchAggregate:
     def clear_uncommitted_events(self):
         self._uncommitted_events.clear()
 
-    def _build_qualifier_dict(self, qualifiers_list: list[dict]) -> Dict[int, Qualifier]:
+    def _build_qualifier_dict(self, qualifiers_list: list[Qualifier]) -> Dict[int, int]:
         result = {}
         for q in qualifiers_list:
-            q_id = q["qualifierId"]
-            val = q.get("value")
-            result[q_id] = Qualifier(q_id, val)
+            q_id = q.qualifier_id
+            val = q.value
+            result[q_id] = val
         return result
+
+
+    

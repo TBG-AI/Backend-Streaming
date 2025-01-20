@@ -8,3 +8,6 @@ class EventStore:
     
     def save_events(self, aggregate_id: str, new_events: List[DomainEvent]) -> None:
         raise NotImplementedError
+    
+    def delete_events(self, aggregate_id: str) -> None:
+        raise NotImplementedError

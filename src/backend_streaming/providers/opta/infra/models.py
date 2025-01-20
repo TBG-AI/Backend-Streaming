@@ -1,5 +1,5 @@
 # Directory: src/backend_streaming/providers/opta/infra/models.py
-from sqlalchemy import Column, String, Integer, ForeignKey, DateTime, JSON, Float
+from sqlalchemy import Column, String, Integer, ForeignKey, DateTime, JSON, Float, BigInteger
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -81,11 +81,9 @@ class MatchProjectionModel(Base):
     This is your read model/projection table.
     """
     __tablename__ = 'match_projection'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
     
     match_id = Column(String, nullable=False, index=True)
-    event_id = Column(Integer, nullable=False, index=True)  # feed_event_id
+    event_id = Column(BigInteger, nullable=False, index=True, primary_key=True)  # feed_event_id
     local_event_id = Column(Integer, nullable=True)
     type_id = Column(Integer, nullable=True)
     period_id = Column(Integer, nullable=True)

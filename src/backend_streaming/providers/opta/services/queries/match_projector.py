@@ -40,7 +40,7 @@ class MatchProjection:
                 "outcome": evt.outcome,
                 "x": evt.x,
                 "y": evt.y,
-                "qualifiers": evt.qualifiers,
+                "qualifiers": evt.qualifiers, 
                 "time_stamp": evt.time_stamp,
                 "last_modified": evt.last_modified
             }

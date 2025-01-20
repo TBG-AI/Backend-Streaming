@@ -70,6 +70,11 @@ class LocalFileEventStore(EventStore):
             self._storage[aggregate_id].append(row)
 
         self._save_to_file()
+        
+    def delete_events(self, aggregate_id: str) -> None:
+        if aggregate_id in self._storage:
+            del self._storage[aggregate_id]
+        self._save_to_file()
 
     # ------------- Internal JSON handling -------------
     def _load_from_file(self):
@@ -101,7 +106,7 @@ class LocalFileEventStore(EventStore):
                 "x": evt.x,
                 "y": evt.y,
                 # We store qualifiers as {qid: val}
-                "qualifiers": {q_id: q.value for (q_id, q) in evt.qualifiers.items()},
+                "qualifiers": evt.qualifiers,
                 "time_stamp": evt.time_stamp,
                 "last_modified": evt.last_modified
             }
@@ -129,10 +134,7 @@ class LocalFileEventStore(EventStore):
         """Convert the JSON row back into the correct DomainEvent object."""
         if event_type == "GlobalEventAdded":
             # Rebuild the qualifiers as a dict of {qid: Qualifier(...)}
-            qual_dict = {
-                int(qid): Qualifier(int(qid), val)
-                for qid, val in payload["qualifiers"].items()
-            }
+
             return GlobalEventAdded(
                 domain_event_id=domain_event_id,
                 aggregate_id=aggregate_id,
@@ -150,7 +152,7 @@ class LocalFileEventStore(EventStore):
                 outcome=payload["outcome"],
                 x=payload["x"],
                 y=payload["y"],
-                qualifiers=qual_dict,
+                qualifiers=payload["qualifiers"],
                 time_stamp=payload["time_stamp"],
                 last_modified=payload["last_modified"]
             )
