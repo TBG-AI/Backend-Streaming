@@ -1,6 +1,8 @@
 # Directory: src/backend_streaming/providers/opta/services/opta_provider.py
-import time
+
+import asyncio
 from typing import List, Dict, Optional, Callable, Set, Tuple
+from dataclasses import fields
 
 from backend_streaming.streamer.streamer import SingleGameStreamer
 from backend_streaming.providers.opta.infra.oath import get_auth_headers
@@ -12,7 +14,7 @@ from backend_streaming.utils.logging import setup_logger
 from backend_streaming.providers.opta.infra.db import get_session
 
 # Domain/Infrastructure imports:
-from backend_streaming.providers.opta.domain.entities.sport_events import EventInMatch
+from backend_streaming.providers.opta.domain.entities.sport_events import EventInMatch, Qualifier
 from backend_streaming.providers.opta.services.queries.match_projector import MatchProjection
 from backend_streaming.providers.opta.domain.aggregates.match_aggregate import MatchAggregate
 from backend_streaming.providers.opta.infra.repo.event_store.local import EventStore, LocalFileEventStore
@@ -20,7 +22,7 @@ from backend_streaming.providers.opta.infra.repo.match import MatchRepository
 from backend_streaming.providers.opta.infra.repo.event_store.postgres import PostgresEventStore
 from backend_streaming.providers.opta.infra.repo.match_projection import MatchProjectionRepository  
 from backend_streaming.providers.opta.infra.models import MatchProjectionModel
-from backend_streaming.providers.opta.domain.events import DomainEvent, GlobalEventAdded, EventTypeChanged, QualifiersChanged
+from backend_streaming.providers.opta.domain.events import DomainEvent
 
 class OptaStreamer:
     def __init__(
@@ -74,9 +76,11 @@ class OptaStreamer:
 
         # this is the streamer wrapper
         self.streamer = streamer
+
+        # TODO: is this the correct thing to be saving? probably not since we're going to use domain events now
         self.last_event_id = None
 
-    def run_live_stream(self, interval: int = 30):
+    async def run_live_stream(self, interval: int = 30):
         """
         Continuously poll the API for new raw events, integrate them into our aggregator,
         and persist them as domain events.
@@ -85,8 +89,8 @@ class OptaStreamer:
 
         while not self.finished:
             try:
-                # fetch raw data from Opta
-                raw_data = self.fetch_events_func(self.match_id)
+                # 1) Fetch raw data from Opta
+                raw_data = await self.fetch_events_func(self.match_id)
                 live_data = raw_data.get("liveData", {})
                 raw_events = live_data.get("event", [])
                 
@@ -105,7 +109,7 @@ class OptaStreamer:
 
             # Sleep for the polling interval (TODO: tier 13??)
             if not self.finished:
-                time.sleep(interval)
+                await asyncio.sleep(interval)
             else:
                 break
         
@@ -119,30 +123,29 @@ class OptaStreamer:
         emit domain events via aggregator handle methods.
         Also detect if the match ended.
         """
-        # this is to track event types that can change
+        # TODO: is this needed???? How will i maintain this???
         changed_times = set()
-
-        for raw_ev in raw_events:
-            ev: EventInMatch = EventInMatch.from_dict(raw_ev)
-            ev_time = self._get_event_time_in_seconds(ev)
-            feed_event_id = ev.feed_event_id
+        for ev in raw_events:
+            new: EventInMatch = EventInMatch.from_dict(ev)
+            feed_event_id = new.feed_event_id
             
-            # avoid doing the same processing for previous raw data. 
-            # NOTE: necessary because raw_data keeps growing since events are accumulating in the feed.
+            # If aggregator doesn't have it yet, it's new
             if self._is_new_event(feed_event_id):
-                self.agg.handle_new_event(ev)
+                self.agg.handle_new_event(new)
                 self.logger.info(f"New event {feed_event_id} added to aggregator.")
             else:
                 existing = self.agg.events[feed_event_id]
-                if self._has_event_changed(existing, ev):
-                    changed_times.add(ev_time)
-                    # TODO: unify all handle methods to update properly
-                    # TODO: last_modified wasn't updated properly to the new one
-                    self.agg.handle_type_changed(feed_event_id, existing.type_id, ev.type_id)
-                    self.agg.handle_qualifiers_changed(feed_event_id, ev.qualifiers)
-                    self.logger.info(f"Event {feed_event_id} type changed to {ev.type_id}.")
+                changed_fields, old_fields = self._compare_event_fields(existing, new)
+                if changed_fields:
+                    # create your domain event for editing
+                    self.agg.handle_event_edited(
+                        feed_event_id=feed_event_id,
+                        changed_fields=changed_fields,
+                        old_fields=old_fields
+                        )
                     
-            if self._is_match_end(ev):
+            # Also see if this event is an 'END' with period=2 => match finished
+            if self._is_match_end(new):
                 self.finished = True
                 self.logger.info(f"Match {self.match_id} ended.")
         
@@ -170,34 +173,66 @@ class OptaStreamer:
                 match_id=self.match_id,
                 event_data=event_entry
             )
+        
+    def _compare_event_fields(self, existing: EventInMatch, new_event: EventInMatch):
+        """
+        Compare all dataclass fields except feed_event_id/local_event_id.
+        If qualifiers differ, do a custom comparison.
+        Return (changed_fields, old_fields).
+        """
+        changed_fields = {}
+        old_fields = {}
+
+        # Get all field names from the dataclass
+        field_names = [f.name for f in fields(EventInMatch)]
+        # Exclude feed_event_id/local_event_id if they never change
+        field_names_to_check = [
+            fname for fname in field_names
+            if fname not in ("feed_event_id", "local_event_id")
+        ]
+
+        for field_name in field_names_to_check:
+            old_val = getattr(existing, field_name, None)
+            new_val = getattr(new_event, field_name, None)
+
+            if field_name == "qualifiers":
+                # Compare them with our helper function
+                print(f"old_val: {old_val}")
+                print(f"new_val: {new_val}")
+                if not Qualifier.qualifiers_are_equal(old_val, new_val):
+                    changed_fields[field_name] = new_val
+                    old_fields[field_name] = old_val
+            else:
+                # Normal direct comparison for other fields
+                if old_val != new_val:
+                    changed_fields[field_name] = new_val
+                    old_fields[field_name] = old_val
+
+        return changed_fields, old_fields
 
 
-    ################################################
-    # single line helper functions for readability #
-    ################################################
+################################################
+# single line helper functions for readability #
+################################################
 
     def _is_new_event(self, feed_event_id: str) -> bool:
         return feed_event_id not in self.agg.events
-    
-    def _has_event_changed(self, existing_event, new_event) -> bool:
-        """Check if an existing event has changed"""
-        return (existing_event.type_id != new_event.type_id or 
-                new_event.last_modified != existing_event.last_modified)
     
     def _is_match_end(self, event: EventInMatch) -> bool:
         """Check if this event signals the end of the match"""
         return event.type_id == EventType.END.value and event.period_id == 2
     
-    def _get_event_time_in_seconds(self, event: EventInMatch) -> int:
-        """Convert event time to total seconds from EventInMatch object"""
-        return event.time_min * 60 + event.time_sec
+    # def _get_event_time_in_seconds(self, event: EventInMatch) -> int:
+    #     """Convert event time to total seconds from EventInMatch object"""
+    #     return event.time_min * 60 + event.time_sec
     
-    def _get_max_time(self, raw_events: List[Dict]) -> int:
-        """Get the maximum game time from raw events"""
-        return max(
-            raw_ev['timeMin'] * 60 + raw_ev['timeSec'] 
-            for raw_ev in raw_events
-        )
+    # def _get_max_time(self, raw_events: List[Dict]) -> int:
+    #     """Get the maximum game time from raw events"""
+    #     return max(
+    #         raw_ev['timeMin'] * 60 + raw_ev['timeSec'] 
+    #         for raw_ev in raw_events
+    #     )
+
 
 
 if __name__ == "__main__":
