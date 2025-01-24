@@ -8,25 +8,28 @@ from backend_streaming.providers.opta.infra.api import get_tournament_schedule
 from backend_streaming.providers.opta.services.opta_provider import OptaStreamer
 from backend_streaming.providers.opta.constants import EPL_TOURNAMENT_ID
 
-async def start_stream(match_id: str):
+async def start_stream(match_id: str, interval: int = 30):
     """
     The actual streaming logic, wrapped as an async function.
     Calls the async run_live_stream on the OptaStreamer.
+    
+    Args:
+        match_id: The match ID to stream
+        interval: Polling interval in seconds (default: 30)
     """
     print(f"[{datetime.datetime.now(timezone.utc)}] Starting live stream for match {match_id}.")
     provider = OptaStreamer(match_id=match_id)
-    # Important: run_live_stream must be async and non-blocking
-    await provider.run_live_stream(interval=30)
+    await provider.run_live_stream(interval=interval)
 
-async def schedule_task(delay_seconds: float, match_id: str):
+async def schedule_task(delay_seconds: float, match_id: str, interval: int = 30):
     """
     Sleep for `delay_seconds`, then call `start_stream`.
     This creates a "delayed async task" for each match.
     """
     await asyncio.sleep(delay_seconds)
-    await start_stream(match_id)
+    await start_stream(match_id, interval=interval)
 
-async def schedule_matches_for_tournament(tournament_id=EPL_TOURNAMENT_ID):
+async def schedule_matches_for_tournament(tournament_id=EPL_TOURNAMENT_ID, interval: int = 30):
     """
     1) Fetch the tournament calendar.
     2) For each match's date/time, schedule stream start 10 mins before kickoff.
@@ -72,14 +75,17 @@ async def schedule_matches_for_tournament(tournament_id=EPL_TOURNAMENT_ID):
             )
             
             # Create the async task
-            asyncio.create_task(schedule_task(delay_seconds, match_id))
+            asyncio.create_task(schedule_task(delay_seconds, match_id, interval=interval))
 
-async def run_scheduler():
+async def run_scheduler(interval: int = 30):
     """
     Main entry point for scheduling all the matches and then keeping the
     program running so the tasks have time to trigger.
+    
+    Args:
+        interval: Polling interval in seconds for the live stream (default: 30)
     """
-    await schedule_matches_for_tournament(EPL_TOURNAMENT_ID)
+    await schedule_matches_for_tournament(EPL_TOURNAMENT_ID, interval=interval)
     
     # Keep the loop running so scheduled tasks can execute
     while True:
@@ -89,7 +95,8 @@ def main():
     """
     Entry point if you want to run it as a script: calls the async run_scheduler function.
     """
-    asyncio.run(run_scheduler())
+    interval = 30  # Hardcoded for now
+    asyncio.run(run_scheduler(interval=interval))
 
 if __name__ == "__main__":
     main()

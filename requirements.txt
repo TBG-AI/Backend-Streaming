@@ -12,3 +12,7 @@ pytest-asyncio
 
 # Async http
 aiohttp
+
+#pytest
+pytest
+pytest-mock
