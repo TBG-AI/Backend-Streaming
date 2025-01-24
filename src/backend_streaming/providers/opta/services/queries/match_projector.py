@@ -1,4 +1,4 @@
-from backend_streaming.providers.opta.domain.events import DomainEvent, GlobalEventAdded, EventTypeChanged, QualifiersChanged
+from backend_streaming.providers.opta.domain.events import DomainEvent, GlobalEventAdded, EventEdited
 
 class MatchProjection:
     """
@@ -6,28 +6,26 @@ class MatchProjection:
     for fast queries, without having to replay all events.
     """
     def __init__(self):
-        # You can store this in memory, or in a DB, or anywhere else.
-        # For demonstration, let's just keep it in a dictionary:
-        self._match_states = {}  # { match_id: { 'events': [...], 'score': ..., etc. } }
+        # In-memory store: { match_id: { "events_by_id": { feed_event_id: {...fields...} }, ... } }
+        self._match_states = {}
 
     def project(self, evt: DomainEvent):
         """
         Apply the incoming domain event to update the read model.
-        Depending on the event type, we'll update the read model differently.
         """
         match_id = evt.aggregate_id
         
-        # Make sure there's an entry for this match_id
+        # Ensure an entry for this match_id
         if match_id not in self._match_states:
             self._match_states[match_id] = {
                 "events_by_id": {},
-                # store other fields as needed, e.g. "score": None, "contestants": {}, etc.
+                # other fields if needed, e.g. "score": None, "contestants": {}, etc.
             }
 
         match_state = self._match_states[match_id]
         
         if isinstance(evt, GlobalEventAdded):
-            # Insert or update the event in the read model
+            # Insert a brand-new event in the read model
             match_state["events_by_id"][evt.feed_event_id] = {
                 "local_event_id": evt.local_event_id,
                 "type_id": evt.type_id,
@@ -40,26 +38,21 @@ class MatchProjection:
                 "outcome": evt.outcome,
                 "x": evt.x,
                 "y": evt.y,
-                "qualifiers": evt.qualifiers, 
+                "qualifiers": evt.qualifiers,
                 "time_stamp": evt.time_stamp,
-                "last_modified": evt.last_modified
+                "last_modified": evt.last_modified,
             }
 
-        elif isinstance(evt, EventTypeChanged):
-            # Update the event's type in the read model
+        elif isinstance(evt, EventEdited):
+            # Update an existing event's fields
             event_entry = match_state["events_by_id"].get(evt.feed_event_id)
             if event_entry:
-                event_entry["type_id"] = evt.new_type_id
+                # For each changed field, overwrite the old value
+                for field_name, new_value in evt.changed_fields.items():
+                    event_entry[field_name] = new_value
 
-        elif isinstance(evt, QualifiersChanged):
-            # Update qualifiers in the read model
-            event_entry = match_state["events_by_id"].get(evt.feed_event_id)
-            if event_entry:
-                event_entry["qualifiers"] = evt.new_qualifiers
-    
     def get_current_match_state(self, match_id: str) -> dict:
         """
-        Return the entire read model state for a match,
-        or some subset (like a scoreboard, event list, etc.).
+        Return the read model state for a match: events, or other summary info.
         """
         return self._match_states.get(match_id, {})

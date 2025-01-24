@@ -1,4 +1,3 @@
-# Directory: src/backend_streaming/providers/opta/domain/entities/sport_events.py
 from dataclasses import dataclass, field
 from typing import Dict, Optional, List
 
@@ -8,19 +7,33 @@ class Qualifier:
     value: Optional[str] = None
 
     def to_dict(self) -> Dict:
-        """Convert Qualifier to dictionary format for JSON storage"""
+        """Convert Qualifier to a dict using 'qualifierId' to match feed JSON."""
         return {
-            'qualifier_id': self.qualifier_id,
+            'qualifierId': self.qualifier_id,
             'value': self.value
         }
 
     @classmethod
     def from_dict(cls, data: Dict) -> 'Qualifier':
-        """Create Qualifier instance from dictionary data"""
+        """Create Qualifier from feed-like dict, expecting 'qualifierId' & 'value' keys."""
         return cls(
-            qualifier_id=int(data['qualifierId']),
+            qualifier_id=int(data['qualifierId']),  # the feed uses 'qualifierId'
             value=data.get('value')
         )
+
+    @staticmethod
+    def qualifiers_are_equal(old_quals: List['Qualifier'], new_quals: List['Qualifier']) -> bool:
+        """
+        Compare two lists of Qualifier objects for equality.
+        """
+        if len(old_quals) != len(new_quals):
+            return False
+
+        old_map = {q.qualifier_id: q.value for q in old_quals}
+        new_map = {q.qualifier_id: q.value for q in new_quals}
+
+        return old_map == new_map
+
 
 @dataclass
 class EventInMatch:
@@ -36,34 +49,40 @@ class EventInMatch:
     outcome: Optional[int] = None
     x: Optional[float] = None
     y: Optional[float] = None
-    # We can keep qualifiers in a dict keyed by 'qualifierId' for easy lookup
+    # We store the qualifiers as a list of Qualifier objects
     qualifiers: List[Qualifier] = field(default_factory=list)
-    time_stamp: Optional[str] = None       # "2024-12-30T20:07:18.992Z"
-    last_modified: Optional[str] = None    # "2024-12-31T03:28:08Z"
+    time_stamp: Optional[str] = None       # e.g. "2024-12-30T20:07:18.992Z"
+    last_modified: Optional[str] = None    # e.g. "2024-12-31T03:28:08Z"
 
     def to_dict(self) -> Dict:
-        """Convert EventInMatch to dictionary format for JSON storage"""
+        """
+        Convert EventInMatch to dictionary format (mimicking feed structure).
+        """
         return {
-            'feed_event_id': self.feed_event_id,
-            'local_event_id': self.local_event_id,
-            'type_id': self.type_id,
-            'period_id': self.period_id,
-            'time_min': self.time_min,
-            'time_sec': self.time_sec,
-            'contestant_id': self.contestant_id,
-            'player_id': self.player_id,
-            'player_name': self.player_name,
+            'id': self.feed_event_id,
+            'eventId': self.local_event_id,
+            'typeId': self.type_id,
+            'periodId': self.period_id,
+            'timeMin': self.time_min,
+            'timeSec': self.time_sec,
+            'contestantId': self.contestant_id,
+            'playerId': self.player_id,
+            'playerName': self.player_name,
             'outcome': self.outcome,
             'x': self.x,
             'y': self.y,
-            'qualifiers': [q.to_dict() for q in self.qualifiers],
-            'time_stamp': self.time_stamp,
-            'last_modified': self.last_modified
+            # Convert each Qualifier using its to_dict() => expecting 'qualifierId'
+            'qualifier': self.map_qualifiers_to_dict(),
+            'timeStamp': self.time_stamp,
+            'lastModified': self.last_modified
         }
 
     @classmethod
     def from_dict(cls, data: Dict) -> 'EventInMatch':
-        """Create EventInMatch instance from dictionary data"""
+        """
+        Create EventInMatch instance from feed-like JSON dict.
+        We expect keys like 'id', 'eventId', 'qualifier' (list of qualifiers).
+        """
         return cls(
             feed_event_id=data['id'],
             local_event_id=data['eventId'],
@@ -84,12 +103,16 @@ class EventInMatch:
 
     @classmethod
     def map_qualifiers_from_dict(cls, data: Optional[List[Dict]]) -> List[Qualifier]:
-        """Create qualifiers dictionary from JSON data"""
+        """
+        Convert the 'qualifier' list from the feed (each item has 'qualifierId' & 'value')
+        into a list of Qualifier objects.
+        """
         if not data:
             return []
-
-        qualifiers = []
-        for qualifier_data in data:
-            qualifier = Qualifier.from_dict(qualifier_data)
-            qualifiers.append(qualifier)
-        return qualifiers
+        return [Qualifier.from_dict(qd) for qd in data]
+    
+    def map_qualifiers_to_dict(self) -> List[Dict]:
+        """
+        Convert the qualifiers list to a list of dicts (mimicking feed structure).
+        """
+        return [q.to_dict() for q in self.qualifiers]

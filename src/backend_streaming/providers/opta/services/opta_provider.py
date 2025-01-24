@@ -1,9 +1,11 @@
 # Directory: src/backend_streaming/providers/opta/services/opta_provider.py
 import json
 import time
+import asyncio
 import logging
 from typing import List, Dict, Optional, Callable
 from datetime import datetime
+from dataclasses import fields
 
 from backend_streaming.providers.base import BaseProvider
 from backend_streaming.providers.opta.infra.oath import get_auth_headers
@@ -15,7 +17,7 @@ from backend_streaming.utils.logging import setup_logger
 from backend_streaming.providers.opta.infra.db import get_session
 
 # Domain/Infrastructure imports:
-from backend_streaming.providers.opta.domain.entities.sport_events import EventInMatch
+from backend_streaming.providers.opta.domain.entities.sport_events import EventInMatch, Qualifier
 from backend_streaming.providers.opta.services.queries.match_projector import MatchProjection
 from backend_streaming.providers.opta.domain.aggregates.match_aggregate import MatchAggregate
 from backend_streaming.providers.opta.infra.repo.event_store.local import EventStore, LocalFileEventStore
@@ -23,7 +25,7 @@ from backend_streaming.providers.opta.infra.repo.match import MatchRepository
 from backend_streaming.providers.opta.infra.repo.event_store.postgres import PostgresEventStore
 from backend_streaming.providers.opta.infra.repo.match_projection import MatchProjectionRepository  
 from backend_streaming.providers.opta.infra.models import MatchProjectionModel
-from backend_streaming.providers.opta.domain.events import DomainEvent, GlobalEventAdded, EventTypeChanged, QualifiersChanged
+from backend_streaming.providers.opta.domain.events import DomainEvent
 
 class OptaStreamer:
     def __init__(self, 
@@ -72,7 +74,7 @@ class OptaStreamer:
         # We'll track if we detect the match ended
         self.finished = False
 
-    def run_live_stream(self, interval: int = 30):
+    async def run_live_stream(self, interval: int = 30):
         """
         Continuously poll the API for new raw events, integrate them into our aggregator,
         and persist them as domain events.
@@ -82,7 +84,7 @@ class OptaStreamer:
         while not self.finished:
             try:
                 # 1) Fetch raw data from Opta
-                raw_data = self.fetch_events_func(self.match_id)
+                raw_data = await self.fetch_events_func(self.match_id)
                 live_data = raw_data.get("liveData", {})
                 raw_events = live_data.get("event", [])
                 
@@ -103,7 +105,7 @@ class OptaStreamer:
 
             # Sleep for the polling interval
             if not self.finished:
-                time.sleep(interval)
+                await asyncio.sleep(interval)
             else:
                 break
 
@@ -116,28 +118,30 @@ class OptaStreamer:
         Also detect if the match ended.
         """
         for ev in raw_events:
-            ev: EventInMatch = EventInMatch.from_dict(ev)
-            feed_event_id = ev.feed_event_id
+            new: EventInMatch = EventInMatch.from_dict(ev)
+            feed_event_id = new.feed_event_id
             
             # If aggregator doesn't have it yet, it's new
             if feed_event_id not in self.agg.events:
-                self.agg.handle_new_event(ev)
+                self.agg.handle_new_event(new)
                 self.logger.info(f"New event {feed_event_id} added to aggregator.")
             else:
                 # Possibly detect type change
                 existing = self.agg.events[feed_event_id]
-                old_type = existing.type_id
-                new_type = ev.type_id
+                changed_fields, old_fields = self._compare_event_fields(existing, new)
 
-                if old_type != new_type or ev.last_modified != existing.last_modified: # Check last modified
-                    self.agg.handle_type_changed(feed_event_id, old_type, new_type)
-                    self.agg.handle_qualifiers_changed(feed_event_id, ev.qualifiers)
-                    self.logger.info(f"Event {feed_event_id} type changed to {new_type}.")
+                if changed_fields:
+                    # create your domain event for editing
+                    self.agg.handle_event_edited(
+                        feed_event_id=feed_event_id,
+                        changed_fields=changed_fields,
+                        old_fields=old_fields
+                        )
                     
                 
 
             # Also see if this event is an 'END' with period=2 => match finished
-            if ev.type_id == EventType.END.value and ev.period_id == 2:
+            if new.type_id == EventType.END.value and new.period_id == 2:
                 self.finished = True
                 self.logger.info(f"Match {self.match_id} ended.")
 
@@ -154,20 +158,11 @@ class OptaStreamer:
 
             # Then upsert each event in the DB
             self.logger.info(f"Upserting event {domain_evt.feed_event_id} into DB...")
-            if isinstance(domain_evt, GlobalEventAdded):
-                self._upsert_match_projection(domain_evt)
-            elif isinstance(domain_evt, EventTypeChanged):
-                # We might also want to re-upsert with the new type
-                self._upsert_match_projection(domain_evt, is_type_changed=True)
-            elif isinstance(domain_evt, QualifiersChanged):
-                # Re-upsert with new qualifiers
-                self._upsert_match_projection(domain_evt, is_qualifiers_changed=True)
+            self._upsert_match_projection(domain_evt)
 
     def _upsert_match_projection(
         self,
         evt: DomainEvent,
-        is_type_changed=False,
-        is_qualifiers_changed=False
     ):
         """
         Construct a MatchProjectionModel from the current in-memory read-model
@@ -201,6 +196,42 @@ class OptaStreamer:
 
         # 3) Upsert
         self.match_projection_repo.save_current_state(mp)
+        
+    def _compare_event_fields(self, existing: EventInMatch, new_event: EventInMatch):
+        """
+        Compare all dataclass fields except feed_event_id/local_event_id.
+        If qualifiers differ, do a custom comparison.
+        Return (changed_fields, old_fields).
+        """
+        changed_fields = {}
+        old_fields = {}
+
+        # Get all field names from the dataclass
+        field_names = [f.name for f in fields(EventInMatch)]
+        # Exclude feed_event_id/local_event_id if they never change
+        field_names_to_check = [
+            fname for fname in field_names
+            if fname not in ("feed_event_id", "local_event_id")
+        ]
+
+        for field_name in field_names_to_check:
+            old_val = getattr(existing, field_name, None)
+            new_val = getattr(new_event, field_name, None)
+
+            if field_name == "qualifiers":
+                # Compare them with our helper function
+                print(f"old_val: {old_val}")
+                print(f"new_val: {new_val}")
+                if not Qualifier.qualifiers_are_equal(old_val, new_val):
+                    changed_fields[field_name] = new_val
+                    old_fields[field_name] = old_val
+            else:
+                # Normal direct comparison for other fields
+                if old_val != new_val:
+                    changed_fields[field_name] = new_val
+                    old_fields[field_name] = old_val
+
+        return changed_fields, old_fields
 
 if __name__ == "__main__":
     event_store = PostgresEventStore(session_factory=get_session)

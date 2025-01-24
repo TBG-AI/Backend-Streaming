@@ -1,4 +1,3 @@
-
 import os
 import json
 from typing import List, Dict
@@ -8,10 +7,8 @@ from datetime import datetime
 from backend_streaming.providers.opta.domain.events import (
     DomainEvent,
     GlobalEventAdded,
-    EventTypeChanged,
-    QualifiersChanged
+    EventEdited,  # newly used
 )
-from backend_streaming.providers.opta.domain.entities.sport_events import Qualifier
 from backend_streaming.providers.opta.infra.repo.event_store.base import EventStore
 
 class LocalFileEventStore(EventStore):
@@ -20,17 +17,20 @@ class LocalFileEventStore(EventStore):
     Format on disk (domain_events.json):
     {
       "match-123": [
-         {"event_type": "GlobalEventAdded", "domain_event_id": "...", "occurred_on": "...", "payload": {...}},
-         {"event_type": "QualifiersChanged", "domain_event_id": "...", "occurred_on": "...", "payload": {...}}
-      ],
-      "match-XYZ": [ ... ]
+         {
+           "event_type": "GlobalEventAdded",
+           "domain_event_id": "...",
+           "occurred_on": "...",
+           "payload": {...}
+         },
+         ...
+      ]
     }
     """
     def __init__(self, filename: str = "domain_events.json"):
         self.filename = filename
         self._storage: Dict[str, List[dict]] = {}  # raw dict for all aggregates
         self._load_from_file()                     # on startup, load everything
-        
 
     def load_events(self, aggregate_id: str) -> List[DomainEvent]:
         """
@@ -42,10 +42,14 @@ class LocalFileEventStore(EventStore):
             event_type = row["event_type"]
             occurred_on = datetime.fromisoformat(row["occurred_on"])
             domain_event_id = row["domain_event_id"]
-            
             payload = row["payload"]
+
             evt = self._deserialize_event(
-                event_type, domain_event_id, aggregate_id, occurred_on, payload
+                event_type,
+                domain_event_id,
+                aggregate_id,
+                occurred_on,
+                payload
             )
             events.append(evt)
         return events
@@ -62,7 +66,7 @@ class LocalFileEventStore(EventStore):
 
         for evt in new_events:
             row = {
-                "event_type": type(evt).__name__,  # e.g. "GlobalEventAdded"
+                "event_type": type(evt).__name__,  # e.g. "GlobalEventAdded" or "EventEdited"
                 "domain_event_id": evt.domain_event_id,
                 "occurred_on": evt.occurred_on.isoformat(),
                 "payload": self._serialize_event(evt)
@@ -105,24 +109,18 @@ class LocalFileEventStore(EventStore):
                 "outcome": evt.outcome,
                 "x": evt.x,
                 "y": evt.y,
-                # We store qualifiers as {qid: val}
-                "qualifiers": evt.qualifiers,
+                "qualifiers": evt.qualifiers,  # e.g. {qid: val}
                 "time_stamp": evt.time_stamp,
                 "last_modified": evt.last_modified
             }
-        elif isinstance(evt, EventTypeChanged):
+        elif isinstance(evt, EventEdited):
             return {
                 "feed_event_id": evt.feed_event_id,
-                "old_type_id": evt.old_type_id,
-                "new_type_id": evt.new_type_id
-            }
-        elif isinstance(evt, QualifiersChanged):
-            return {
-                "feed_event_id": evt.feed_event_id,
-                "new_qualifiers": evt.new_qualifiers
+                "changed_fields": evt.changed_fields,
+                "old_fields": evt.old_fields
             }
         else:
-            # If you add more event types, handle them or do a general fallback
+            # fallback if more event types are added later
             return evt.__dict__
 
     def _deserialize_event(self,
@@ -133,13 +131,10 @@ class LocalFileEventStore(EventStore):
                            payload: dict) -> DomainEvent:
         """Convert the JSON row back into the correct DomainEvent object."""
         if event_type == "GlobalEventAdded":
-            # Rebuild the qualifiers as a dict of {qid: Qualifier(...)}
-
             return GlobalEventAdded(
                 domain_event_id=domain_event_id,
                 aggregate_id=aggregate_id,
                 occurred_on=occurred_on,
-
                 feed_event_id=payload["feed_event_id"],
                 local_event_id=payload["local_event_id"],
                 type_id=payload["type_id"],
@@ -156,22 +151,14 @@ class LocalFileEventStore(EventStore):
                 time_stamp=payload["time_stamp"],
                 last_modified=payload["last_modified"]
             )
-        elif event_type == "EventTypeChanged":
-            return EventTypeChanged(
+        elif event_type == "EventEdited":
+            return EventEdited(
                 domain_event_id=domain_event_id,
                 aggregate_id=aggregate_id,
                 occurred_on=occurred_on,
                 feed_event_id=payload["feed_event_id"],
-                old_type_id=payload["old_type_id"],
-                new_type_id=payload["new_type_id"]
-            )
-        elif event_type == "QualifiersChanged":
-            return QualifiersChanged(
-                domain_event_id=domain_event_id,
-                aggregate_id=aggregate_id,
-                occurred_on=occurred_on,
-                feed_event_id=payload["feed_event_id"],
-                new_qualifiers=payload["new_qualifiers"]
+                changed_fields=payload["changed_fields"],
+                old_fields=payload["old_fields"]
             )
         else:
             raise ValueError(f"Unknown event type: {event_type}")

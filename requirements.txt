@@ -5,3 +5,10 @@ sqlalchemy
 sqlalchemy_utils
 psycopg2
 websocket-client
+
+# asyncio
+asyncio
+pytest-asyncio
+
+# Async http
+aiohttp

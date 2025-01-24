@@ -1,28 +1,42 @@
-# Directory: src/backend_streaming/providers/opta/domain/match_aggregate.py
-from typing import Dict, Optional, List
+from typing import Dict, Any, Union
 from uuid import uuid4
 from datetime import datetime
-from backend_streaming.providers.opta.domain.events import DomainEvent, GlobalEventAdded, EventTypeChanged, QualifiersChanged
+
+from backend_streaming.providers.opta.domain.events import (
+    DomainEvent,
+    GlobalEventAdded,
+    EventEdited
+)
 from backend_streaming.providers.opta.domain.entities.sport_events import EventInMatch, Qualifier
 
 class MatchAggregate:
     def __init__(self, match_id: str):
         self.match_id = match_id
-        # Key = feed_event_id (API 'id'), Value = EventInMatch
+
+        # Key = feed_event_id, Value = EventInMatch
         self.events: Dict[int, EventInMatch] = {}
+        
+        # Domain events that haven't been persisted yet
         self._uncommitted_events: list[DomainEvent] = []
 
+    # ------------------------------------------------------------------
+    # APPLY methods: these mutate the aggregator's in-memory state
+    # ------------------------------------------------------------------
+
     def apply(self, evt: DomainEvent):
-        # Route to the correct handler method
+        """
+        Base "apply" method that routes to the correct specific handler.
+        """
         if isinstance(evt, GlobalEventAdded):
             self._apply_global_event_added(evt)
-        elif isinstance(evt, EventTypeChanged):
-            self._apply_event_type_changed(evt)
-        elif isinstance(evt, QualifiersChanged):
-            self._apply_qualifiers_changed(evt)
+        elif isinstance(evt, EventEdited):
+            self._apply_event_edited(evt)
+        # else: you could log or ignore if you have more event types
 
     def _apply_global_event_added(self, evt: GlobalEventAdded):
-        # Construct new in-memory event from domain event
+        """
+        Add a brand-new event to the aggregator's in-memory `events` dict.
+        """
         new_event = EventInMatch(
             feed_event_id=evt.feed_event_id,
             local_event_id=evt.local_event_id,
@@ -36,40 +50,41 @@ class MatchAggregate:
             outcome=evt.outcome,
             x=evt.x,
             y=evt.y,
-            # Convert the domain event's qualifiers (dict or list) into a dict
-            qualifiers=evt.qualifiers,
+            qualifiers=EventInMatch.map_qualifiers_from_dict(evt.qualifiers),   # dict => may convert to domain objects if needed
             time_stamp=evt.time_stamp,
             last_modified=evt.last_modified
         )
         self.events[evt.feed_event_id] = new_event
 
-    def _apply_event_type_changed(self, evt: EventTypeChanged):
-        event_in_match = self.events.get(evt.feed_event_id)
-        if event_in_match:
-            event_in_match.type_id = evt.new_type_id
+    def _apply_event_edited(self, evt: EventEdited):
+        """
+        Update an existing event with new field values.
+        
+        We'll loop through `evt.changed_fields` dict and set them on the aggregator's in-memory object.
+        """
+        existing = self.events.get(evt.feed_event_id)
+        if not existing:
+            # Possibly log a warning or skip if aggregator doesn't have that event
+            return
+        
+        # For each field that changed, set the new value on the in-memory event
+        for field_name, new_value in evt.changed_fields.items():
+            # Example: if field_name == "type_id", do existing.type_id = new_value
+            # We'll do a generic setattr if the attribute exists
+            if hasattr(existing, field_name):
+                setattr(existing, field_name, new_value)
+            else:
+                raise ValueError(f"Field {field_name} not found in EventInMatch When editing event {evt.feed_event_id}")
 
-    def _apply_qualifiers_changed(self, evt: QualifiersChanged):
-        e = self.events.get(evt.feed_event_id)
-        if e:
-            # Overwrite the entire qualifiers dictionary
-            e.qualifiers = {
-                qid: Qualifier(qid, val) 
-                for qid, val in evt.new_qualifiers.items()
-            }
-            
-    # ------------------
-    # Public "handle" methods
-    # ------------------
+    # ------------------------------------------------------------------
+    # PUBLIC "HANDLE" methods:
+    #   Code calls these to generate domain events and record them.
+    # ------------------------------------------------------------------
 
     def handle_new_event(self, event: EventInMatch):
         """
-        data is the raw dict from the API, e.g. {
-          "id": 2762916859,
-          "eventId": 230,
-          "typeId": 1,
-          ...
-          "qualifier": [ {"qualifierId":212, "value":"6.7"}, ... ]
-        }
+        The aggregator sees a brand-new feed event. 
+        We create a `GlobalEventAdded` domain event, record it.
         """
         domain_evt = GlobalEventAdded(
             domain_event_id=str(uuid4()),
@@ -88,34 +103,42 @@ class MatchAggregate:
             outcome=event.outcome,
             x=event.x,
             y=event.y,
-            qualifiers=self._build_qualifier_dict(event.qualifiers),
+            qualifiers=event.map_qualifiers_to_dict(),
             time_stamp=event.time_stamp,
             last_modified=event.last_modified
         )
         self._record(domain_evt)
 
-    def handle_type_changed(self, feed_event_id: int, old_type: int, new_type: int):
-        domain_evt = EventTypeChanged(
+    def handle_event_edited(
+        self,
+        feed_event_id: int,
+        changed_fields: Dict[str, Any],
+        old_fields: Dict[str, Any] = None
+    ):
+        """
+        The aggregator sees an existing event has changed. 
+        `changed_fields` might contain updates to `type_id`, `x`, `y`, `qualifiers`, etc.
+        `old_fields` is optional if we want to track the old values for analytics.
+        """
+        domain_evt = EventEdited(
             domain_event_id=str(uuid4()),
             aggregate_id=self.match_id,
             occurred_on=datetime.utcnow(),
             feed_event_id=feed_event_id,
-            old_type_id=old_type,
-            new_type_id=new_type
+            changed_fields=changed_fields,
+            old_fields=old_fields or {}
         )
         self._record(domain_evt)
 
-    def handle_qualifiers_changed(self, feed_event_id: int, new_qualifiers: Optional[List[Qualifier]]):
-        domain_evt = QualifiersChanged(
-            domain_event_id=str(uuid4()),
-            aggregate_id=self.match_id,
-            occurred_on=datetime.utcnow(),
-            feed_event_id=feed_event_id,
-            new_qualifiers=self._build_qualifier_dict(new_qualifiers)
-        )
-        self._record(domain_evt)
+    # ------------------------------------------------------------------
+    # COMMIT / TRACKING
+    # ------------------------------------------------------------------
 
     def _record(self, domain_event: DomainEvent):
+        """
+        1. Apply the domain event to update aggregator state
+        2. Keep track of uncommitted domain events
+        """
         self.apply(domain_event)
         self._uncommitted_events.append(domain_event)
 
@@ -125,13 +148,3 @@ class MatchAggregate:
     def clear_uncommitted_events(self):
         self._uncommitted_events.clear()
 
-    def _build_qualifier_dict(self, qualifiers_list: list[Qualifier]) -> Dict[int, int]:
-        result = {}
-        for q in qualifiers_list:
-            q_id = q.qualifier_id
-            val = q.value
-            result[q_id] = val
-        return result
-
-
-    
