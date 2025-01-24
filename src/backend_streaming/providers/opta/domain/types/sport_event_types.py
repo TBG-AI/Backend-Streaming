@@ -15,6 +15,7 @@ EVENT_TYPE_IDS = {
     12: "Clearance",
     13: "Miss",
     14: "Post",
+    # a shot which is saved by the goalie or blocked by opposition
     15: "Attempt Saved",
     16: "Goal",
     17: "Card",
@@ -35,11 +36,14 @@ EVENT_TYPE_IDS = {
     34: "Team set up",
     36: "Player changed Jersey number",
     37: "Collection End",
+    # goal has occurred but is pending additional detaul qualifiers
     38: "Temp Goal",
+    # show on goal has coccurred but is pending additional detail qualifiers. 
     39: "Temp Attempt",
     40: "Formation change",
     41: "Punch",
     42: "Good skill",
+    # NOTE: responsible for a lot of event type id changes
     43: "Deleted event",
     44: "Aerial",
     45: "Challenge",
@@ -57,6 +61,7 @@ EVENT_TYPE_IDS = {
     58: "Penalty faced",
     59: "Keeper Sweeper",
     60: "Chance missed",
+    # a player UNSUCCESSFULLY controls the ball and loses possession
     61: "Ball touch",
     62: "Event placeholder",
     63: "Temp Save",
@@ -78,7 +83,9 @@ EVENT_TYPE_IDS = {
     80: "Drop of Ball",
     81: "Obstacle",
     82: "Control",
+    # a player has attempted to tackle an opponent but is unsuccessful
     83: "Attempted tackle",
+    # this is for events deleted from VAR
     84: "Deleted After Review"
 }
 
@@ -471,6 +478,7 @@ QUALIFIER_IDS = {
     479: "Estimated",
     484: "Dubious scorer",
     485: "Advantage played",
+
     486: "Concussion",
     487: "Panenka"
 }

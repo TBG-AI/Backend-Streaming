@@ -60,9 +60,6 @@ def run_example_with_event_store():
     event_store = PostgresEventStore(session=session)
     
     # Fetching Events 
-    
-    
-
 
 def main():
     # Create tables if they don't already exist

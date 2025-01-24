@@ -5,7 +5,7 @@ from typing import List
 from db.core.factory import DatabaseClientFactory as db_factory
 
 from backend_streaming.config.logging import setup_logging
-from backend_streaming.shared.streamer import SingleGameStreamer
+from backend_streaming.streamer.streamer import SingleGameStreamer
 from backend_streaming.providers.local.local import LocalDataProvider
 from backend_streaming.providers.local.utils import reset_all
 from backend_streaming.constants import GAMES_DIR

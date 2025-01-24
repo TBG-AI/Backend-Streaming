@@ -64,13 +64,12 @@ class EventInMatch:
     @classmethod
     def from_dict(cls, data: Dict) -> 'EventInMatch':
         """Create EventInMatch instance from dictionary data"""
+        # TODO: add a "received_at" field
         return cls(
             feed_event_id=data['id'],
             local_event_id=data['eventId'],
             type_id=data['typeId'],
             period_id=data['periodId'],
-            time_min=data['timeMin'],
-            time_sec=data['timeSec'],
             contestant_id=data.get('contestantId'),
             player_id=data.get('playerId'),
             player_name=data.get('playerName'),
@@ -78,6 +77,10 @@ class EventInMatch:
             x=data.get('x'),
             y=data.get('y'),
             qualifiers=cls.map_qualifiers_from_dict(data.get('qualifier')),
+            # these are the times of the actual "event"
+            time_min=data['timeMin'],
+            time_sec=data['timeSec'],
+            # these are the "in feed" times
             time_stamp=data.get('timeStamp'),
             last_modified=data.get('lastModified')
         )

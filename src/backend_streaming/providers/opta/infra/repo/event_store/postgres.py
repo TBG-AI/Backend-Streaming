@@ -60,6 +60,7 @@ class PostgresEventStore(EventStore):
                     payload=self._serialize_event(evt)
                 )
                 session.add(row)
+            # batch commit to maintain transaction boundaries for WRITE model
             session.commit()
         finally:
             session.close()
@@ -74,7 +75,7 @@ class PostgresEventStore(EventStore):
 
     # -------------- Internal serialization/deserialization --------------
 
-     # ------------- Serialization / Deserialization ----
+    # ------------- Serialization / Deserialization ----
     def _serialize_event(self, evt: DomainEvent) -> dict:
         """Convert a domain event object to a dict for JSON storage."""
         if isinstance(evt, GlobalEventAdded):
@@ -123,7 +124,6 @@ class PostgresEventStore(EventStore):
                 domain_event_id=domain_event_id,
                 aggregate_id=aggregate_id,
                 occurred_on=occurred_on,
-
                 feed_event_id=payload["feed_event_id"],
                 local_event_id=payload["local_event_id"],
                 type_id=payload["type_id"],

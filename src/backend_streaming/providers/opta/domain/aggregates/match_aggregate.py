@@ -71,11 +71,13 @@ class MatchAggregate:
           "qualifier": [ {"qualifierId":212, "value":"6.7"}, ... ]
         }
         """
+        # TODO: add in the rest of the fields from the events feed???
+        # TODO: we should also monitor the insertion of this event into db (let db autofill)
         domain_evt = GlobalEventAdded(
             domain_event_id=str(uuid4()),
             aggregate_id=self.match_id,
+            # NOTE: this naming is slightly misleading. This field represents when the DomainEvent was created. 
             occurred_on=datetime.utcnow(),
-
             feed_event_id=event.feed_event_id,
             local_event_id=event.local_event_id,
             type_id=event.type_id,

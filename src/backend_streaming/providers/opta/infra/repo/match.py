@@ -19,9 +19,9 @@ class MatchRepository:
         new_events = agg.get_uncommitted_events()
         if not new_events:
             return
+        # simple insertion. no filtering. 
         self.event_store.save_events(agg.match_id, new_events)
-        
-        # agg.clear_uncommitted_events()
+        # NOTE: can't clear uncommitted events here, because we need to update the projections
         
     def delete(self, match_id: str):
         self.event_store.delete_events(match_id)

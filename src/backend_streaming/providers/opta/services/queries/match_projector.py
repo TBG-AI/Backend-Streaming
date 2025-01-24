@@ -15,9 +15,11 @@ class MatchProjection:
         Apply the incoming domain event to update the read model.
         Depending on the event type, we'll update the read model differently.
         """
+        # extract the match_id from the event
         match_id = evt.aggregate_id
         
         # Make sure there's an entry for this match_id
+        # NOTE: this is when project is first called
         if match_id not in self._match_states:
             self._match_states[match_id] = {
                 "events_by_id": {},
@@ -25,9 +27,8 @@ class MatchProjection:
             }
 
         match_state = self._match_states[match_id]
-        
         if isinstance(evt, GlobalEventAdded):
-            # Insert or update the event in the read model
+            # Insert the event in the read model
             match_state["events_by_id"][evt.feed_event_id] = {
                 "local_event_id": evt.local_event_id,
                 "type_id": evt.type_id,
@@ -45,6 +46,8 @@ class MatchProjection:
                 "last_modified": evt.last_modified
             }
 
+        # TODO: these get merged in... therefore, the games service needs to know when this happens. 
+        # ideally, it should be "pending" until we know a merge won't happen any more. 
         elif isinstance(evt, EventTypeChanged):
             # Update the event's type in the read model
             event_entry = match_state["events_by_id"].get(evt.feed_event_id)
