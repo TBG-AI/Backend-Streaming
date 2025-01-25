@@ -1,5 +1,4 @@
-# src/backend_streaming/providers/opta/services/opta_scheduler_async.py
-
+# src/backend_streaming/providers/opta/services/opta_scheduler.py
 import asyncio
 import datetime
 from datetime import timezone, timedelta
@@ -26,14 +25,17 @@ async def schedule_task(delay_seconds: float, match_id: str, interval: int = 30)
     Sleep for `delay_seconds`, then call `start_stream`.
     This creates a "delayed async task" for each match.
     """
-    await asyncio.sleep(delay_seconds)
+    if delay_seconds > 0:
+        await asyncio.sleep(delay_seconds)
     await start_stream(match_id, interval=interval)
 
 async def schedule_matches_for_tournament(tournament_id=EPL_TOURNAMENT_ID, interval: int = 30):
     """
     1) Fetch the tournament calendar.
     2) For each match's date/time, schedule stream start 10 mins before kickoff.
-    3) Schedule only if the match is within the next 7 days.
+    3) If the match has already started (now past the scheduled start), begin streaming immediately
+       as long as the match is still within 90 minutes of its official kickoff.
+    4) Schedule only if the match is within the next 7 days.
     """
     data = await get_tournament_schedule(tournament_id)
     if not data or "matchDate" not in data:
@@ -48,32 +50,54 @@ async def schedule_matches_for_tournament(tournament_id=EPL_TOURNAMENT_ID, inter
         match_list = md.get("match", [])
         for m in match_list:
             match_id = m["id"]
-            # e.g. date="2024-08-17Z", time="14:00:00Z"
-            date_str = m["date"]
-            time_str = m["time"]
-            
-            # Construct a datetime, parse
-            datetime_str = f"{date_str.replace('Z', '')}T{time_str.replace('Z', '')}+00:00"
-            match_datetime = datetime.datetime.fromisoformat(datetime_str)
-            
-            # Start streaming 10 minutes before official match time
-            stream_start = match_datetime - timedelta(minutes=10)
-            
-            # Check if in past or beyond 7 days
-            if stream_start < now:
+            date_str = m.get("date") or ""
+            time_str = m.get("time") or ""
+
+            # If time is missing or empty, skip:
+            if not time_str or time_str.strip() in ("Z", ""):
+                print(f"Skipping match {match_id} due to missing time.")
                 continue
+
+            datetime_str = f"{date_str.replace('Z', '')}T{time_str.replace('Z', '')}+00:00"
+            try:
+                match_datetime = datetime.datetime.fromisoformat(datetime_str)
+            except ValueError as e:
+                print(f"Skipping match {match_id} because of invalid date/time {datetime_str}: {e}")
+                continue
+            
+            # Skip matches beyond 7 days:
             if match_datetime > one_week_later:
                 continue
+
+            # Calculate the normal streaming start time (10 minutes before kickoff)
+            stream_start = match_datetime - timedelta(minutes=10)
+
+            # If the stream start time is in the future, schedule normally.
+            if stream_start > now:
+                delay_seconds = (stream_start - now).total_seconds()
+                print(
+                    f"[{datetime.datetime.now(timezone.utc)}] "
+                    f"Scheduled match {match_id} | "
+                    f"Stream starts in: {timedelta(seconds=delay_seconds)} | "
+                    f"Kickoff time: {match_datetime.strftime('%Y-%m-%d %H:%M:%S')} UTC"
+                )
             
-            # Otherwise schedule the stream start
-            delay_seconds = (stream_start - now).total_seconds()
-            print(
-                f"[{datetime.datetime.now(timezone.utc)}] "  # Add timestamp
-                f"Scheduled match {match_id} | "
-                f"Stream starts in: {timedelta(seconds=delay_seconds)} | "
-                f"Kickoff time: {match_datetime.strftime('%Y-%m-%d %H:%M:%S')} UTC"
-            )
-            
+            else:
+                # stream_start is in the past
+                # We check if we are still within 90 minutes of the official match time
+                late_start_threshold = match_datetime + timedelta(minutes=90)
+                if now <= late_start_threshold:
+                    # We can still start streaming immediately
+                    delay_seconds = 0
+                    print(
+                        f"[{datetime.datetime.now(timezone.utc)}] "
+                        f"Match {match_id} already started, but within 90-minute window. "
+                        f"Starting stream immediately."
+                    )
+                else:
+                    # The match is probably over (beyond 90 mins from kickoff)
+                    continue
+
             # Create the async task
             asyncio.create_task(schedule_task(delay_seconds, match_id, interval=interval))
 

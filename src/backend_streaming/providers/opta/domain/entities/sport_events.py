@@ -31,7 +31,8 @@ class Qualifier:
 
         old_map = {q.qualifier_id: q.value for q in old_quals}
         new_map = {q.qualifier_id: q.value for q in new_quals}
-
+        if not old_map == new_map:
+            print(f"Qualifiers are not equal: {old_map} != {new_map}")
         return old_map == new_map
 
 

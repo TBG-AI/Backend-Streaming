@@ -160,6 +160,8 @@ class OptaStreamer:
             self.logger.info(f"Upserting event {domain_evt.feed_event_id} into DB...")
             self._upsert_match_projection(domain_evt)
 
+    
+    # TODO: Database upsert should be async too
     def _upsert_match_projection(
         self,
         evt: DomainEvent,
@@ -220,11 +222,9 @@ class OptaStreamer:
 
             if field_name == "qualifiers":
                 # Compare them with our helper function
-                print(f"old_val: {old_val}")
-                print(f"new_val: {new_val}")
                 if not Qualifier.qualifiers_are_equal(old_val, new_val):
-                    changed_fields[field_name] = new_val
-                    old_fields[field_name] = old_val
+                    changed_fields[field_name] = [q.to_dict() for q in new_val]
+                    old_fields[field_name] = [q.to_dict() for q in old_val]
             else:
                 # Normal direct comparison for other fields
                 if old_val != new_val:
@@ -236,4 +236,5 @@ class OptaStreamer:
 if __name__ == "__main__":
     event_store = PostgresEventStore(session_factory=get_session)
     provider = OptaStreamer(match_id="cdvojt8rvxgk077kd9bvyj3f8", event_store=event_store)
-    provider.run_live_stream()
+    asyncio.run(provider.run_live_stream())
+    asyncio.run(provider.run_live_stream())
