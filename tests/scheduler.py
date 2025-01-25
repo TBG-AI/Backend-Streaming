@@ -14,6 +14,9 @@ from backend_streaming.providers.opta.infra.repo.event_store.postgres import Pos
 from backend_streaming.providers.opta.infra.repo.match_projection import MatchProjectionRepository
 from backend_streaming.providers.opta.infra.models import MatchProjectionModel
 from backend_streaming.providers.opta.constants import EPL_TOURNAMENT_ID
+from backend_streaming.streamer.streamer import SingleGameStreamer
+
+from db.core.factory import DatabaseClientFactory as db_factory
 
 @pytest.mark.asyncio
 async def test_scheduler_e2e_with_mock_db(seeded_db, mock_get_events, mocker):
@@ -79,11 +82,18 @@ async def test_scheduler_e2e_with_mock_db(seeded_db, mock_get_events, mocker):
         session_factory = lambda: seeded_db
         event_store = PostgresEventStore(session_factory)
         match_proj_repo = MatchProjectionRepository(session_factory)
-
+        sqs_client = db_factory.get_sqs_client("sqs-local", group_id=match_id)
+        streamer = SingleGameStreamer(
+            game_id=match_id,
+            db_client=None,
+            sqs_client=sqs_client,
+        )
+        streamer = SingleGameStreamer(match_id, db_client=seeded_db, sqs_client=sqs_client)
         original_init(self,
             match_id=match_id,
             event_store=event_store,
             match_projection_repo=match_proj_repo,
+            streamer=streamer,
             fetch_events_func=mock_get_events,
             *args, **kwargs
         )
