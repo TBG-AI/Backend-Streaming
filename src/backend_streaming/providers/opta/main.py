@@ -16,19 +16,22 @@ logging.basicConfig(
     level=logging.INFO,
 )
 
-def run_example():
+async def run_example():
     session = get_session()
     repo = TeamPlayerRepository(session=session)
     
     # Fetch teams
     teams = []
-    for team in get_teams(EPL_TOURNAMENT_ID)['contestant']:
+    fetched_teams = await get_teams(EPL_TOURNAMENT_ID)
+    teams_data = fetched_teams['contestant']
+    for team in teams_data:
         logger.info(f"Team name: {team['name']}")
         logger.info(f"Team keys: {', '.join(sorted(team.keys()))}")
         new_team = Team.from_dict(team)
         teams.append(new_team)
     
-    squads = get_squads(EPL_TOURNAMENT_ID)
+    # Fetch squads asynchronously
+    squads = await get_squads(EPL_TOURNAMENT_ID)
     for squad in squads['squad']:
         team_id = squad['contestantId']
         team: Team = next((t for t in teams if t.team_id == team_id), None)

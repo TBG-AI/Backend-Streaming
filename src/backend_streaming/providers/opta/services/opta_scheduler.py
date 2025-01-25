@@ -85,7 +85,7 @@ async def schedule_matches_for_tournament(tournament_id=EPL_TOURNAMENT_ID, inter
             else:
                 # stream_start is in the past
                 # We check if we are still within 90 minutes of the official match time
-                late_start_threshold = match_datetime + timedelta(minutes=90)
+                late_start_threshold = match_datetime + timedelta(minutes=180)
                 if now <= late_start_threshold:
                     # We can still start streaming immediately
                     delay_seconds = 0
