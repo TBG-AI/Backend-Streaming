@@ -1,7 +1,7 @@
 # Directory: src/backend_streaming/providers/opta/main.py
 
 import logging
-
+import asyncio
 from backend_streaming.providers.opta.constants import EPL_TOURNAMENT_ID
 from backend_streaming.providers.opta.infra.api import get_teams, get_squads
 from backend_streaming.providers.opta.infra.db import init_db
@@ -78,4 +78,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-    run_example()
+    asyncio.run(run_example())
