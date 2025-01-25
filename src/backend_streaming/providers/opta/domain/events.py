@@ -6,6 +6,8 @@ import datetime
 class DomainEvent:
     domain_event_id: str
     aggregate_id: str   # match_id
+    # NOTE: this name is slightly misleading... 
+    # It's not when the event occurred, but when the DomainEvent was created.
     occurred_on: datetime.datetime
 
 @dataclass(frozen=True)

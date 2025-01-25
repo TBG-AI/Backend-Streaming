@@ -97,12 +97,12 @@ class OptaStreamer:
                 # maintain the READ / WRITE models
                 # NOTE: all these functions run a loop over the batch. Order should be persistent.
                 if raw_events:
-                    changed_times, curr_time = self._process_raw_events(raw_events)
+                    self._process_raw_events(raw_events)
                     self.match_repo.save(self.agg)
                     self._update_projections()
                     self.agg.clear_uncommitted_events()
                     # sending to Games service
-                    self.streamer.handle_update(changed_times, curr_time)
+                    self.streamer.send_message(is_eog=False)
 
             except Exception as e:
                 self.logger.error(f"Error fetching events for match {self.match_id}: {e}", exc_info=True)
@@ -110,21 +110,18 @@ class OptaStreamer:
             # Sleep for the polling interval (TODO: tier 13??)
             if not self.finished:
                 await asyncio.sleep(interval)
-            else:
-                break
-        
-        # signal the Games service that the match has ended
-        self.streamer.handle_game_end()
+
+        # NOTE: at this point, all data is already sent.
+        # This is just a signal to the Games service that the match has ended.
+        self.streamer.send_message(is_eog=True)
         self.logger.info(f"Match {self.match_id} is finished. Exiting stream.")
 
-    def _process_raw_events(self, raw_events: List[Dict]) -> Tuple[Set[int], int]:
+    def _process_raw_events(self, raw_events: List[Dict]) -> None:
         """
         Compare each raw event with aggregator state, detect changes,
         emit domain events via aggregator handle methods.
         Also detect if the match ended.
         """
-        # TODO: is this needed???? How will i maintain this???
-        changed_times = set()
         for ev in raw_events:
             new: EventInMatch = EventInMatch.from_dict(ev)
             feed_event_id = new.feed_event_id
@@ -144,12 +141,9 @@ class OptaStreamer:
                         old_fields=old_fields
                         )
                     
-            # Also see if this event is an 'END' with period=2 => match finished
             if self._is_match_end(new):
                 self.finished = True
                 self.logger.info(f"Match {self.match_id} ended.")
-        
-        return changed_times, self._get_max_time(raw_events)
 
     def _update_projections(self):
         """

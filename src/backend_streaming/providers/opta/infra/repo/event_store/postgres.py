@@ -72,10 +72,6 @@ class PostgresEventStore(EventStore):
 
     # -------------- Internal serialization/deserialization --------------
 
-<<<<<<< HEAD
-    # ------------- Serialization / Deserialization ----
-=======
->>>>>>> event_sourcing
     def _serialize_event(self, evt: DomainEvent) -> dict:
         """Convert a domain event object to a dict for JSON storage."""
         if isinstance(evt, GlobalEventAdded):
