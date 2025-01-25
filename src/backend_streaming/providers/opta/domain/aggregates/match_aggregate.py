@@ -71,14 +71,14 @@ class MatchAggregate:
         for field_name, new_value in evt.changed_fields.items():
             # Example: if field_name == "type_id", do existing.type_id = new_value
             # We'll do a generic setattr if the attribute exists
-            if field_name == "qualifiers":
-                new_qualifiers = EventInMatch.map_qualifiers_from_dict(new_value)
-                existing.qualifiers = new_qualifiers
-            else:
-                if hasattr(existing, field_name):
-                    setattr(existing, field_name, new_value)
+            if hasattr(existing, field_name):
+                if field_name == "qualifiers":
+                    new_qualifiers = EventInMatch.map_qualifiers_from_dict(new_value)
+                    setattr(existing, field_name, new_qualifiers)
                 else:
-                    raise ValueError(f"Field {field_name} not found in EventInMatch When editing event {evt.feed_event_id}")
+                    setattr(existing, field_name, new_value)
+            else:
+                raise ValueError(f"Field {field_name} not found in EventInMatch When editing event {evt.feed_event_id}")
 
     # ------------------------------------------------------------------
     # PUBLIC "HANDLE" methods:
@@ -124,13 +124,6 @@ class MatchAggregate:
         `changed_fields` might contain updates to `type_id`, `x`, `y`, `qualifiers`, etc.
         `old_fields` is optional if we want to track the old values for analytics.
         """
-        for field_name, new_value in changed_fields.items():
-            if field_name == "qualifiers":
-                new_qualifiers = EventInMatch.map_qualifiers_from_dict(new_value)
-                changed_fields[field_name] = new_qualifiers
-                old_qualifiers = EventInMatch.map_qualifiers_from_dict(old_fields.get(field_name, []))
-                old_fields[field_name] = old_qualifiers
-                
         domain_evt = EventEdited(
             domain_event_id=str(uuid4()),
             aggregate_id=self.match_id,

@@ -225,6 +225,8 @@ class OptaStreamer:
                 if not Qualifier.qualifiers_are_equal(old_val, new_val):
                     changed_fields[field_name] = [q.to_dict() for q in new_val]
                     old_fields[field_name] = [q.to_dict() for q in old_val]
+                    print(f"qualifiers changed: {changed_fields[field_name]}")
+                    print(f"qualifiers old: {old_fields[field_name]}")
             else:
                 # Normal direct comparison for other fields
                 if old_val != new_val:
