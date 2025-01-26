@@ -7,6 +7,4 @@ SQS_PROCESSED_AND_DELETED_KEYWORD = "PROCESSED -> DELETED"
 # data constants
 GAMES_DIR = 'src/data/games'
 
-# snapshot constants
-SNAPSHOTS_DIR = 'src/backend_streaming/static/'
 
