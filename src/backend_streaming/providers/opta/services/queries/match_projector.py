@@ -38,6 +38,8 @@ class MatchProjection:
                 "outcome": evt.outcome,
                 "x": evt.x,
                 "y": evt.y,
+                "assist": evt.assist,
+                "key_pass": evt.key_pass,
                 "qualifiers": evt.qualifiers,
                 "time_stamp": evt.time_stamp,
                 "last_modified": evt.last_modified,

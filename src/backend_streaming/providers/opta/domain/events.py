@@ -23,6 +23,8 @@ class GlobalEventAdded(DomainEvent):
     player_id: Optional[str] = None
     player_name: Optional[str] = None
     outcome: Optional[int] = None
+    assist: Optional[int] = None
+    key_pass: Optional[int] = None
     x: Optional[float] = None
     y: Optional[float] = None
     qualifiers: Dict[int, str] = field(default_factory=dict)

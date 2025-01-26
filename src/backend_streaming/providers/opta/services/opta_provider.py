@@ -193,7 +193,9 @@ class OptaStreamer:
             y=event_entry["y"],
             qualifiers=event_entry["qualifiers"], # JSON/BLOB field
             time_stamp=event_entry["time_stamp"],
-            last_modified=event_entry["last_modified"]
+            last_modified=event_entry["last_modified"],
+            # assist=event_entry["assist"],
+            # key_pass=event_entry["key_pass"]
         )
 
         # 3) Upsert

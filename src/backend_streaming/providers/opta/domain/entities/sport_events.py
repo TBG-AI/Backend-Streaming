@@ -48,6 +48,12 @@ class EventInMatch:
     player_id: str
     player_name: str
     outcome: Optional[int] = None
+
+    # adding these fields
+    assist: Optional[int] = None
+    key_pass: Optional[int] = None
+    ############################
+
     x: Optional[float] = None
     y: Optional[float] = None
     # We store the qualifiers as a list of Qualifier objects
@@ -70,6 +76,10 @@ class EventInMatch:
             'playerId': self.player_id,
             'playerName': self.player_name,
             'outcome': self.outcome,
+            # newly added
+            'assist': self.assist,
+            'keyPass': self.key_pass,
+            ############################
             'x': self.x,
             'y': self.y,
             # Convert each Qualifier using its to_dict() => expecting 'qualifierId'
@@ -84,6 +94,7 @@ class EventInMatch:
         Create EventInMatch instance from feed-like JSON dict.
         We expect keys like 'id', 'eventId', 'qualifier' (list of qualifiers).
         """
+        # TODO: why use get only sometimes???
         return cls(
             feed_event_id=data['id'],
             local_event_id=data['eventId'],
@@ -95,6 +106,10 @@ class EventInMatch:
             player_id=data.get('playerId'),
             player_name=data.get('playerName'),
             outcome=data.get('outcome'),
+            # newly added
+            assist=data.get('assist'),
+            key_pass=data.get('keyPass'),
+            ############################
             x=data.get('x'),
             y=data.get('y'),
             qualifiers=cls.map_qualifiers_from_dict(data.get('qualifier')),

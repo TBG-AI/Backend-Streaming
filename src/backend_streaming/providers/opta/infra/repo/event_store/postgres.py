@@ -74,6 +74,8 @@ class PostgresEventStore(EventStore):
     def _serialize_event(self, evt: DomainEvent) -> dict:
         """Convert a domain event object to a dict for JSON storage."""
         if isinstance(evt, GlobalEventAdded):
+            print(evt.assist)
+            print(evt.key_pass)
             return {
                 "feed_event_id": evt.feed_event_id,
                 "local_event_id": evt.local_event_id,
@@ -85,11 +87,13 @@ class PostgresEventStore(EventStore):
                 "player_id": evt.player_id,
                 "player_name": evt.player_name,
                 "outcome": evt.outcome,
+                "assist": evt.assist,
+                "key_pass": evt.key_pass,
                 "x": evt.x,
                 "y": evt.y,
                 "qualifiers": evt.qualifiers,
                 "time_stamp": evt.time_stamp,
-                "last_modified": evt.last_modified
+                "last_modified": evt.last_modified,
             }
         elif isinstance(evt, EventEdited):
             return {

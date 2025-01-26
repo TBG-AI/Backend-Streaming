@@ -48,6 +48,8 @@ class MatchAggregate:
             player_id=evt.player_id,
             player_name=evt.player_name,
             outcome=evt.outcome,
+            assist=evt.assist,
+            key_pass=evt.key_pass,
             x=evt.x,
             y=evt.y,
             qualifiers=EventInMatch.map_qualifiers_from_dict(evt.qualifiers),   # dict => may convert to domain objects if needed
@@ -105,6 +107,10 @@ class MatchAggregate:
             player_id=event.player_id,
             player_name=event.player_name,
             outcome=event.outcome,
+
+            assist=event.assist,
+            key_pass=event.key_pass,
+            
             x=event.x,
             y=event.y,
             qualifiers=event.map_qualifiers_to_dict(),

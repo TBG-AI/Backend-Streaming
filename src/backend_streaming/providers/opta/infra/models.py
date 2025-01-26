@@ -103,6 +103,8 @@ class MatchProjectionModel(Base):
     outcome = Column(Integer, nullable=True)
     x = Column(Float, nullable=True)
     y = Column(Float, nullable=True)
+    # assist = Column(Integer, nullable=True)
+    # key_pass = Column(Integer, nullable=True)
     qualifiers = Column(JSON, nullable=True)
     
     time_stamp = Column(String, nullable=True)
