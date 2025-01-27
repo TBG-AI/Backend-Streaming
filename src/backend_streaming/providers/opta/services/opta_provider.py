@@ -255,15 +255,11 @@ async def process_matches(match_ids: List[str], max_concurrent: int = 8):
 
 
 if __name__ == "__main__":
-    match_ids = [ 
-        "ceoracydrstgwdj3jeqfm0aac",
-        "cfjmtr9xrz3ydur0k879qbjmc",
-        "cgrtk6bfvu2ctp1rjs34g2r6c",
-        "ch6opw6zdu0a9z0yopszbd91w",
-        "chlesutq3dquxwfvv4ba65hjo",
-        "cif7u6dfjijtksln0bq4fvgus",
+    match_ids = [
+        "ci0mj3nznl2mswxmit5tdiwic",
+        "cgd2x2vbz3uxkuerreo4txo9g",
+        "cfy32fjgh4kbey9otbghjfpjo",
         "cf51smte7w3vb85s7wtnll3is",
-        "cgd2x2vbz3uxkuerreo4txo9g"
     ]
     
     # Run with asyncio
