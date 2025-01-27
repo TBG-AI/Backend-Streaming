@@ -234,9 +234,37 @@ class OptaStreamer:
                     old_fields[field_name] = old_val
 
         return changed_fields, old_fields
+    
+
+
+async def process_matches(match_ids: List[str], max_concurrent: int = 8):
+    """Process multiple matches concurrently with rate limiting"""
+    sem = asyncio.Semaphore(max_concurrent)
+    
+    async def process_match(match_id: str):
+        async with sem:  # Limit concurrent executions
+            event_store = PostgresEventStore(session_factory=get_session)
+            provider = OptaStreamer(match_id=match_id, event_store=event_store)
+            await provider.run_live_stream()
+    
+    # Create tasks for all matches
+    tasks = [process_match(match_id) for match_id in match_ids]
+    
+    # Run all tasks concurrently and wait for completion
+    await asyncio.gather(*tasks)
+
 
 if __name__ == "__main__":
-    event_store = PostgresEventStore(session_factory=get_session)
-    provider = OptaStreamer(match_id="cdvojt8rvxgk077kd9bvyj3f8", event_store=event_store)
-    asyncio.run(provider.run_live_stream())
-    asyncio.run(provider.run_live_stream())
+    match_ids = [ 
+        "ceoracydrstgwdj3jeqfm0aac",
+        "cfjmtr9xrz3ydur0k879qbjmc",
+        "cgrtk6bfvu2ctp1rjs34g2r6c",
+        "ch6opw6zdu0a9z0yopszbd91w",
+        "chlesutq3dquxwfvv4ba65hjo",
+        "cif7u6dfjijtksln0bq4fvgus",
+        "cf51smte7w3vb85s7wtnll3is",
+        "cgd2x2vbz3uxkuerreo4txo9g"
+    ]
+    
+    # Run with asyncio
+    asyncio.run(process_matches(match_ids))
