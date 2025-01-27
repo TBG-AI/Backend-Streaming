@@ -3,6 +3,7 @@ import json
 import time
 import asyncio
 import logging
+import boto3
 from typing import List, Dict, Optional, Callable
 from datetime import datetime
 from dataclasses import fields
@@ -26,18 +27,23 @@ from backend_streaming.providers.opta.infra.repo.event_store.postgres import Pos
 from backend_streaming.providers.opta.infra.repo.match_projection import MatchProjectionRepository  
 from backend_streaming.providers.opta.infra.models import MatchProjectionModel
 from backend_streaming.providers.opta.domain.events import DomainEvent
+from backend_streaming.streamer.sqs import LocalSQSClient
 
 class OptaStreamer:
-    def __init__(self, 
-                 match_id: str,
-                 tournament_id: str = EPL_TOURNAMENT_ID,
-                 log_file: Optional[str] =  None,
-                 event_store_filename: Optional[str] = None,
-                 event_store: Optional[EventStore] = None,
-                 match_projection: Optional[MatchProjection] = None,
-                 match_projection_repo: Optional[MatchProjectionRepository] = None,
-                 fetch_events_func: Optional[Callable] = None # Depends on the provider (Mock, API, etc.)
-        ):
+    def __init__(
+        self, 
+        sqs_client: LocalSQSClient,
+        match_id: str,
+        tournament_id: str = EPL_TOURNAMENT_ID,
+
+        # optional params
+        log_file: Optional[str] =  None,
+        event_store_filename: Optional[str] = None,
+        event_store: Optional[EventStore] = None,
+        match_projection: Optional[MatchProjection] = None,
+        match_projection_repo: Optional[MatchProjectionRepository] = None,
+        fetch_events_func: Optional[Callable] = None, # Depends on the provider (Mock, API, etc.)
+    ):
         """
         We'll pass in a match_id that we want to track.
         We'll keep a local file event store, so we can replay domain events across runs.
@@ -74,11 +80,15 @@ class OptaStreamer:
         # We'll track if we detect the match ended
         self.finished = False
 
+        #### streaming 
+        self.sqs_client = sqs_client
+
     async def run_live_stream(self, interval: int = 30):
         """
         Continuously poll the API for new raw events, integrate them into our aggregator,
         and persist them as domain events.
         """
+        # TODO: stream must persist 24h after the game. But, polls should be more infrequent...
         self.logger.info(f"Starting streaming for match={self.match_id}...")
 
         while not self.finished:
@@ -109,6 +119,7 @@ class OptaStreamer:
             else:
                 break
 
+        
         self.logger.info(f"Match {self.match_id} is finished. Exiting stream.")
 
     def _process_raw_events(self, raw_events: List[Dict]):
@@ -235,7 +246,10 @@ class OptaStreamer:
 
         return changed_fields, old_fields
     
-
+# TODO: figure out where this fits
+########################
+# simple helper function
+########################
 
 async def process_matches(match_ids: List[str], max_concurrent: int = 8):
     """Process multiple matches concurrently with rate limiting"""

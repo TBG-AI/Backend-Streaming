@@ -123,4 +123,5 @@ def main():
     asyncio.run(run_scheduler(interval=interval))
 
 if __name__ == "__main__":
+    # THIS IS FOR SCHEDULING LIVE STREAMS. CURRENTLY, VERIFICATION DOESN'T SUPPORT THIS...
     main()
