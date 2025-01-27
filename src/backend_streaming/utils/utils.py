@@ -1,5 +1,6 @@
 from backend_streaming.providers.opta.infra.api import get_tournament_schedule
 from backend_streaming.providers.opta.constants import EPL_TOURNAMENT_ID
+import asyncio
 
 
 async def create_match_id_mapping(match_ids: list[str]) -> dict[str, str]:
@@ -37,3 +38,28 @@ async def create_match_id_mapping(match_ids: list[str]) -> dict[str, str]:
             mapping[match_id] = "ERROR"
             
     return mapping
+
+if __name__ == "__main__":
+    match_ids = [
+        "c0i4chcg41suds6581fj8k7bo",
+        "cbggpny9iygsfce7xf6wycb9w",
+        "cdvojt8rvxgk077kd9bvyj3f8",
+        "ceoracydrstgwdj3jeqfm0aac",
+        "cf51smte7w3vb85s7wtnll3is",
+        "cfjmtr9xrz3ydur0k879qbjmc",
+        "cfy32fjgh4kbey9otbghjfpjo",
+        "cgd2x2vbz3uxkuerreo4txo9g",
+        "cgrtk6bfvu2ctp1rjs34g2r6c",
+        "ch6opw6zdu0a9z0yopszbd91w",
+        "chlesutq3dquxwfvv4ba65hjo",
+        "ci0mj3nznl2mswxmit5tdiwic",
+        "cif7u6dfjijtksln0bq4fvgus"
+    ]
+    
+    async def main():
+        mapping = await create_match_id_mapping(match_ids)
+        for match_id, match_name in mapping.items():
+            print(f"{match_id}: {match_name}")
+    
+    # Run with asyncio
+    asyncio.run(main())
