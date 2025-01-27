@@ -59,9 +59,10 @@ class MatchAggregate:
     def _apply_event_edited(self, evt: EventEdited):
         """
         Update an existing event with new field values.
-        
         We'll loop through `evt.changed_fields` dict and set them on the aggregator's in-memory object.
         """
+        # TODO: how is Opta handling events that get deleted? For example, (x,y) becomes (0, 0)... stuff like that.
+
         existing = self.events.get(evt.feed_event_id)
         if not existing:
             # Possibly log a warning or skip if aggregator doesn't have that event

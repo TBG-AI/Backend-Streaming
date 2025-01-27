@@ -1,1 +1,0 @@
-SNAPSHOTS_DIR = 'analysis/domain_events/'

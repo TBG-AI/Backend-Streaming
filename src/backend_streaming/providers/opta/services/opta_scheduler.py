@@ -41,7 +41,7 @@ async def schedule_matches_for_tournament(tournament_id=EPL_TOURNAMENT_ID, inter
         return
     
     match_dates = data["matchDate"]
-    now = datetime.datetime.now(timezone.utc)
+    now = datetime.datetime.now(timezone.utc) 
     one_week_later = now + timedelta(days=7)
 
     for md in match_dates:

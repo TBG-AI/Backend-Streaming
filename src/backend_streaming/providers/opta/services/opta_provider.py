@@ -228,8 +228,18 @@ class OptaStreamer:
     #     )
 
 
-
 if __name__ == "__main__":
-    event_store = PostgresEventStore(session_factory=get_session)
-    provider = OptaStreamer(match_id="cbggpny9iygsfce7xf6wycb9w", event_store=event_store)
-    provider.run_live_stream()
+    match_ids = [ 
+        "ceoracydrstgwdj3jeqfm0aac",
+        "cfjmtr9xrz3ydur0k879qbjmc",
+        "cgrtk6bfvu2ctp1rjs34g2r6c",
+        "ch6opw6zdu0a9z0yopszbd91w",
+        "chlesutq3dquxwfvv4ba65hjo",
+        "cif7u6dfjijtksln0bq4fvgus",
+        "cf51smte7w3vb85s7wtnll3is",
+        "cgd2x2vbz3uxkuerreo4txo9g"
+    ]
+    for match_id in match_ids:
+        event_store = PostgresEventStore(session_factory=get_session)
+        provider = OptaStreamer(match_id=match_id, event_store=event_store)
+        provider.run_live_stream()
