@@ -27,22 +27,22 @@ from backend_streaming.providers.opta.infra.repo.event_store.postgres import Pos
 from backend_streaming.providers.opta.infra.repo.match_projection import MatchProjectionRepository  
 from backend_streaming.providers.opta.infra.models import MatchProjectionModel
 from backend_streaming.providers.opta.domain.events import DomainEvent
-from backend_streaming.streamer.sqs import LocalSQSClient
+
+# streamer
+from backend_streaming.streamer.streamer import SingleGameStreamer
 
 class OptaStreamer:
     def __init__(
         self, 
-        sqs_client: LocalSQSClient,
         match_id: str,
         tournament_id: str = EPL_TOURNAMENT_ID,
-
         # optional params
         log_file: Optional[str] =  None,
         event_store_filename: Optional[str] = None,
         event_store: Optional[EventStore] = None,
         match_projection: Optional[MatchProjection] = None,
         match_projection_repo: Optional[MatchProjectionRepository] = None,
-        fetch_events_func: Optional[Callable] = None, # Depends on the provider (Mock, API, etc.)
+        fetch_events_func: Optional[Callable] = None, # Depends on the provider (Mock, API, etc.)        
     ):
         """
         We'll pass in a match_id that we want to track.
@@ -79,9 +79,8 @@ class OptaStreamer:
 
         # We'll track if we detect the match ended
         self.finished = False
+        self.streamer = SingleGameStreamer(game_id=self.match_id)
 
-        #### streaming 
-        self.sqs_client = sqs_client
 
     async def run_live_stream(self, interval: int = 30):
         """
@@ -93,22 +92,20 @@ class OptaStreamer:
 
         while not self.finished:
             try:
-                # 1) Fetch raw data from Opta
+                # Fetch raw data from Opta
                 raw_data = await self.fetch_events_func(self.match_id)
                 live_data = raw_data.get("liveData", {})
                 raw_events = live_data.get("event", [])
                 
-                # 2) Process raw events in aggregator
+                # process accordingly
                 self._process_raw_events(raw_events)
-
-                # 3) Persist aggregator => commits new domain events
                 self.match_repo.save(self.agg)
-
-                # 4) Update DB match projection from aggregator's uncommitted events
                 self._update_projections()
-
-                # 5) Clear uncommitted
                 self.agg.clear_uncommitted_events()
+
+                # send message via streamer
+                # TODO: for now, this does nothing...
+                self.streamer.send_message(message_type="update")
 
             except Exception as e:
                 self.logger.error(f"Error fetching events for match {self.match_id}: {e}", exc_info=True)
@@ -119,7 +116,7 @@ class OptaStreamer:
             else:
                 break
 
-        
+        self.streamer.send_message(message_type="stop")
         self.logger.info(f"Match {self.match_id} is finished. Exiting stream.")
 
     def _process_raw_events(self, raw_events: List[Dict]):
