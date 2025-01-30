@@ -1,3 +1,5 @@
+from typing import List
+
 from backend_streaming.providers.opta.infra.models import MatchProjectionModel
 from backend_streaming.providers.opta.domain.entities.sport_events import Qualifier
 
@@ -21,7 +23,7 @@ class MatchProjectionRepository:
         finally:
             session.close()
 
-    def get_match_state(self, match_id: str):
+    def get_match_state(self, match_id: str) -> List[MatchProjectionModel]:
         """
         Return all projected events for this match as a list of MatchProjectionModel objects.
         """

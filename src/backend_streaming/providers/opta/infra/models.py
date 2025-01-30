@@ -1,8 +1,8 @@
 # Directory: src/backend_streaming/providers/opta/infra/models.py
 from sqlalchemy import Column, String, Integer, ForeignKey, DateTime, JSON, Float, BigInteger
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, class_mapper
 from sqlalchemy.ext.declarative import declarative_base
-
+from datetime import datetime, date
 Base = declarative_base()
 
 class TeamModel(Base):
@@ -107,6 +107,17 @@ class MatchProjectionModel(Base):
     
     time_stamp = Column(String, nullable=True)
     last_modified = Column(String, nullable=True)
+
+    def to_dict(self) -> dict:
+        """Convert model instance to dictionary."""
+        result = {}
+        for key in class_mapper(self.__class__).columns.keys():
+            value = getattr(self, key)
+            # Convert non-serializable objects to strings if needed
+            if isinstance(value, (datetime, date)):
+                value = value.isoformat()
+            result[key] = value
+        return result
 
     def __repr__(self):
         return (f"<MatchProjectionModel("

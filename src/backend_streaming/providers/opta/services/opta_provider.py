@@ -104,8 +104,9 @@ class OptaStreamer:
                 self.agg.clear_uncommitted_events()
 
                 # send message via streamer
-                # TODO: for now, this does nothing...
-                self.streamer.send_message(message_type="update")
+                # NOTE: Choosing to send in bulk for robustness. Event data is not that big so this is ok.
+                all_events = self.match_projection_repo.get_match_state(self.match_id)
+                self.streamer.send_message(message_type="update", payload=all_events)
 
             except Exception as e:
                 self.logger.error(f"Error fetching events for match {self.match_id}: {e}", exc_info=True)
@@ -160,14 +161,14 @@ class OptaStreamer:
         to the database via MatchProjectionRepository (upsert).
         """
         uncommitted = self.agg.get_uncommitted_events()
-        for domain_evt in uncommitted:
+        for i, domain_evt in enumerate(uncommitted):
             # Update the in-memory read model first
             self.match_projection.project(domain_evt)
 
             # Then upsert each event in the DB
+            # NOTE: only get the match state on the last event 
             self.logger.info(f"Upserting event {domain_evt.feed_event_id} into DB...")
-            self._upsert_match_projection(domain_evt)
-
+            match_state = self._upsert_match_projection(domain_evt)
     
     # TODO: Database upsert should be async too
     def _upsert_match_projection(
@@ -175,8 +176,8 @@ class OptaStreamer:
         evt: DomainEvent,
     ):
         """
-        Construct a MatchProjectionModel from the current in-memory read-model
-        for the event in question, then upsert via repository.
+        Construct a MatchProjectionModel and upserts the db.
+        Returns current match state if specified in args.
         """
         # 1) Look up the event data from the in-memory read model:
         match_state = self.match_projection.get_current_match_state(self.match_id)
