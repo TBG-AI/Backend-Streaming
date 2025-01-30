@@ -146,9 +146,6 @@ class OptaStreamer:
                         changed_fields=changed_fields,
                         old_fields=old_fields
                         )
-                    
-                
-
             # Also see if this event is an 'END' with period=2 => match finished
             if new.type_id == EventType.END.value and new.period_id == 2:
                 self.finished = True

@@ -1,5 +1,6 @@
-import logging
+
 import json
+import pika
 from typing import Optional, Dict, List
 
 from shared.src.shared.messaging.sqs import LocalSQSClient 
@@ -7,50 +8,76 @@ from datetime import datetime
 
 from backend_streaming.providers.opta.infra.models import MatchProjectionModel
 
+import logging
 logger = logging.getLogger(__name__)
+
+RABBITMQ_URL = 'amqp://guest:guest@localhost:5672/'
+QUEUE_NAME = 'game_events'
 
 class SingleGameStreamer:
     def __init__(
-        self,  
-        game_id: int,   
-        sqs_client: Optional[LocalSQSClient] = None,
+        self, 
+        game_id: str, 
+        url: str = RABBITMQ_URL,
+        queue_name: str = QUEUE_NAME
     ):
         self.game_id = game_id
-        # NOTE: this is by default NOT a FIFO queue
-        self.sqs = sqs_client or LocalSQSClient()
-    
-    def send_message(self, message_type: str, events: List[MatchProjectionModel] = None):
-        """
-        Send message to SQS with appropriate type and payload.
-        """ 
-        # serialize to json-serializable format
-        payload = [
-            model.to_dict() for model in events
-        ] if events else None
+        self.url = url
+        self.queue_name = queue_name
 
-        data = {
-            'game_id': self.game_id,
-            'type': message_type,
-            'payload': payload,
-            'timestamp': datetime.now().isoformat()
-        }
-        logger.info(f"Game {self.game_id} sending: {data}")
-        # NOTE: sqs client handels json serialization
-        response_code = self.sqs.send_message(data)
-        
-        if response_code != 200:
-            # TODO: handle error appropriately
-            pass
+        # TODO: use aio-pika for async?
+        self.connection = pika.BlockingConnection(pika.URLParameters(self.url))
+        self.channel = self.connection.channel()
+        self.channel.queue_declare(queue=self.queue_name)
+
+    def send_message(
+        self, 
+        message_type: str, 
+        events: List[MatchProjectionModel] = None
+    ):
+        # need to convert to json serializable object
+        payload = [model.to_dict() for model in events] if events else None
+
+        properties = pika.BasicProperties(
+            # TODO: app_id is kinda irrelevant but including for consistency
+            app_id='single_game_streamer',
+            content_type='application/json',
+            headers={
+                'game_id': self.game_id,
+                'message_type': message_type,
+                'timestamp': datetime.now().isoformat()
+            }
+        )
+        self.channel.basic_publish(
+            exchange='',
+            routing_key=self.queue_name,
+            body=json.dumps(payload),
+            properties=properties
+    )
+
+    def close(self):
+        self.connection.close()
+
+
 
 if __name__ == "__main__":
-    # TODO: send few messages to Games service.
-    # try out of order messages too
     from backend_streaming.providers.opta.infra.repo.match_projection import MatchProjectionRepository  
     from backend_streaming.providers.opta.infra.db import get_session
 
+    # get the events
+    game_id = 'ci0mj3nznl2mswxmit5tdiwic'
     repo = MatchProjectionRepository(session_factory=get_session)
-    streamer = SingleGameStreamer(game_id='cgrtk6bfvu2ctp1rjs34g2r6c')
+    events = repo.get_match_state(match_id=game_id)
 
-    events = repo.get_match_state(match_id="cgrtk6bfvu2ctp1rjs34g2r6c")
-    streamer.sqs.purge_queue()
-    streamer.send_message(message_type="stop", events=events)
+    # set up streamer
+    rabbitmq_url = 'amqp://guest:guest@localhost:5672/'
+    queue_name = 'game_events'
+    message_type = 'stop'
+    streamer = SingleGameStreamer(game_id, rabbitmq_url, queue_name)
+    
+    # send the events
+    print(f"==> \n Sending {len(events)} events to RabbitMQ...")
+    print(f"==> message type: {message_type}")
+    streamer.send_message(message_type=message_type, events=events)
+    
+  

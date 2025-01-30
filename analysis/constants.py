@@ -1,0 +1,1 @@
+SNAPSHOTS_DIR = 'analysis/snapshots/'
