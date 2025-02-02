@@ -89,7 +89,7 @@ def stream_read_model(
             for feed_event_id, event_entry in match_state.get("events_by_id", {}).items()
         ]
         try:
-            streamer.send_message(message_type="ongoing", events=match_state_read)
+            streamer.send_message(message_type="update", events=match_state_read)
         except Exception as e:
             raise(f"Error sending message: {e}")
 

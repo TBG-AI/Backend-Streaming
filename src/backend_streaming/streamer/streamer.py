@@ -36,8 +36,7 @@ class SingleGameStreamer:
         events: List[MatchProjectionModel] = None
     ):
         # need to convert to json serializable object
-        payload = [model.to_dict() for model in events] if events else None
-
+        payload = [model.to_dict() for model in events] if events else []
         properties = pika.BasicProperties(
             # TODO: app_id is kinda irrelevant but including for consistency
             app_id='single_game_streamer',
