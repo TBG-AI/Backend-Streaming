@@ -15,7 +15,6 @@ class MatchAggregate:
 
         # Key = feed_event_id, Value = EventInMatch
         self.events: Dict[int, EventInMatch] = {}
-        
         # Domain events that haven't been persisted yet
         self._uncommitted_events: list[DomainEvent] = []
 

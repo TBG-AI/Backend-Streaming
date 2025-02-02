@@ -74,7 +74,8 @@ class OptaStreamer:
         self.agg: MatchAggregate = self.match_repo.load(match_id)  # replays everything
         self.match_id = match_id
         
-        # Fetch events from Opta API
+        # By default this is Opta API. 
+        # Optionally, you can pass in a mock function for testing.
         self.fetch_events_func = fetch_events_func or get_match_events
 
         # We'll track if we detect the match ended
@@ -97,16 +98,17 @@ class OptaStreamer:
                 live_data = raw_data.get("liveData", {})
                 raw_events = live_data.get("event", [])
                 
-                # process accordingly
+                # create appropriate event types and save to domain events
                 self._process_raw_events(raw_events)
                 self.match_repo.save(self.agg)
-                self._update_projections()
+
+                # TODO: maybe have the consumer services maintain their own READ models?
+                # If there are multiple services requiring event data, this makes sense...
+                match_state_read = self._update_projections()
                 self.agg.clear_uncommitted_events()
 
-                # send message via streamer
-                # NOTE: Choosing to send in bulk for robustness. Event data is not that big so this is ok.
-                all_events = self.match_projection_repo.get_match_state(self.match_id)
-                self.streamer.send_message(message_type="update", payload=all_events)
+                # send message via streamer in bulk.
+                self.streamer.send_message(message_type="update", payload=match_state_read)
 
             except Exception as e:
                 self.logger.error(f"Error fetching events for match {self.match_id}: {e}", exc_info=True)
@@ -151,59 +153,26 @@ class OptaStreamer:
                 self.finished = True
                 self.logger.info(f"Match {self.match_id} ended.")
 
-    def _update_projections(self):
+    def _update_projections(self) -> List[MatchProjectionModel]:
         """
-        Read uncommitted domain events from aggregator, apply them
-        to in-memory projection, then persist each event's state
-        to the database via MatchProjectionRepository (upsert).
+        Read uncommitted domain events from aggregator and apply them to in-memory projection.
+        Then, persist the current match state to the database via MatchProjectionRepository (upsert).
         """
         uncommitted = self.agg.get_uncommitted_events()
         for i, domain_evt in enumerate(uncommitted):
             # Update the in-memory read model first
             self.match_projection.project(domain_evt)
 
-            # Then upsert each event in the DB
-            # NOTE: only get the match state on the last event 
-            self.logger.info(f"Upserting event {domain_evt.feed_event_id} into DB...")
-            match_state = self._upsert_match_projection(domain_evt)
-    
-    # TODO: Database upsert should be async too
-    def _upsert_match_projection(
-        self,
-        evt: DomainEvent,
-    ):
-        """
-        Construct a MatchProjectionModel and upserts the db.
-        Returns current match state if specified in args.
-        """
-        # 1) Look up the event data from the in-memory read model:
+        # save current match state to DB
+        # NOTE: a single match state is collection of events from the BEGINNING until the current event.
+        self.logger.info(f"Upserting current match state into DB...")
         match_state = self.match_projection.get_current_match_state(self.match_id)
-        event_entry = match_state.get("events_by_id", {}).get(evt.feed_event_id)
-        if not event_entry:
-            return  # Shouldn't happen if the projection is in sync.
-
-        # 2) Create or fill out the ORM model
-        mp = MatchProjectionModel(
-            match_id=self.match_id,
-            event_id=evt.feed_event_id,
-            local_event_id=event_entry["local_event_id"],
-            type_id=event_entry["type_id"],
-            period_id=event_entry["period_id"],
-            time_min=event_entry["time_min"],
-            time_sec=event_entry["time_sec"],
-            contestant_id=event_entry["contestant_id"],
-            player_id=event_entry["player_id"],
-            player_name=event_entry["player_name"],
-            outcome=event_entry["outcome"],
-            x=event_entry["x"],
-            y=event_entry["y"],
-            qualifiers=event_entry["qualifiers"], # JSON/BLOB field
-            time_stamp=event_entry["time_stamp"],
-            last_modified=event_entry["last_modified"]
-        )
-
-        # 3) Upsert
-        self.match_projection_repo.save_current_state(mp)
+        orm_models = [
+            self.match_projection_repo._convert_to_orm_model(self.match_id, feed_event_id, event_entry)
+            for feed_event_id, event_entry in match_state.get("events_by_id", {}).items()
+        ]
+        self.match_projection_repo.save_match_state(orm_models)
+        return orm_models
         
     def _compare_event_fields(self, existing: EventInMatch, new_event: EventInMatch):
         """
@@ -241,11 +210,11 @@ class OptaStreamer:
 
         return changed_fields, old_fields
     
+
 # TODO: figure out where this fits
 ########################
 # simple helper function
 ########################
-
 async def process_matches(match_ids: List[str], max_concurrent: int = 8):
     """Process multiple matches concurrently with rate limiting"""
     sem = asyncio.Semaphore(max_concurrent)

@@ -20,6 +20,10 @@ class PostgresEventStore(EventStore):
         self.session_factory = session_factory
 
     def load_events(self, aggregate_id: str) -> List[DomainEvent]:
+        """
+        Load all deserialized domain events for a given aggregate ID.
+        NOTE: all attributes accessible with .__dict__ to view all fields. Otherwise, you only see the __repr__ fields
+        """
         session: Session = self.session_factory()
         try:
             rows = (
@@ -52,8 +56,10 @@ class PostgresEventStore(EventStore):
                 row = DomainEventModel(
                     domain_event_id=evt.domain_event_id,
                     aggregate_id=aggregate_id,
-                    event_type=type(evt).__name__,  # "GlobalEventAdded" or "EventEdited"
                     occurred_on=evt.occurred_on,
+                    # Choosing to save event specific information separately in the payload. 
+                    # This makes it easier to query for specific event types.
+                    event_type=type(evt).__name__, 
                     payload=self._serialize_event(evt)
                 )
                 session.add(row)

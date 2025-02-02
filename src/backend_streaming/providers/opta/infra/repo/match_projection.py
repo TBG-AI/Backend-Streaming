@@ -9,19 +9,50 @@ class MatchProjectionRepository:
     def __init__(self, session_factory):
         self.session_factory = session_factory
 
-    def save_current_state(self, mp: MatchProjectionModel):
+    def _convert_to_orm_model(
+        self, 
+        match_id: str, 
+        feed_event_id: int,
+        event_entry: dict
+    ) -> MatchProjectionModel:
         """
-        Upsert the match projection row for a given event in a match.
+        Convert a domain event entry into an ORM model.
         """
+        return MatchProjectionModel(
+            match_id=match_id,
+            event_id=feed_event_id,
+            local_event_id=event_entry["local_event_id"],
+            type_id=event_entry["type_id"],
+            period_id=event_entry["period_id"],
+            time_min=event_entry["time_min"],
+            time_sec=event_entry["time_sec"],
+            contestant_id=event_entry["contestant_id"],
+            player_id=event_entry["player_id"],
+            player_name=event_entry["player_name"],
+            outcome=event_entry["outcome"],
+            x=event_entry["x"],
+            y=event_entry["y"],
+            qualifiers=event_entry["qualifiers"], # JSON/BLOB field
+            time_stamp=event_entry["time_stamp"],
+            last_modified=event_entry["last_modified"]
+        )
+
+    def save_match_state(
+        self,
+        orm_models: List[MatchProjectionModel]
+    ):    
         session = self.session_factory()
         try:
-            session.merge(mp)
+            # TODO: use sqlalchemy to do bulk upserts instead of for loop
+            for model in orm_models:
+                session.merge(model)
             session.commit()
-        except:
+        except Exception as e:
             session.rollback()
             raise
         finally:
             session.close()
+
 
     def get_match_state(self, match_id: str) -> List[MatchProjectionModel]:
         """

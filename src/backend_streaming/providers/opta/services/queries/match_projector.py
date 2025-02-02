@@ -7,6 +7,7 @@ class MatchProjection:
     """
     def __init__(self):
         # In-memory store: { match_id: { "events_by_id": { feed_event_id: {...fields...} }, ... } }
+        # NOTE: a single match state is collection of events
         self._match_states = {}
 
     def project(self, evt: DomainEvent):
