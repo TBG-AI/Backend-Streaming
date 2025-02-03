@@ -99,6 +99,12 @@ class TimeConfig:
         else:
             # Use the configured start time & speed
             self.time_controller = TimeController(self.SIMULATION_START_TIME, self.SIMULATION_SPEED)
+    
+    def get_time_passed(self):
+        """
+        Returns the time passed since the simulation started.
+        """
+        return self.time_controller.now() - self.time_controller.start_simulation_time
 
     def now(self):
         """

@@ -47,4 +47,5 @@ config.local.py
 htmlcov/
 .pytest_cache/
 .tox/
+shared/
 

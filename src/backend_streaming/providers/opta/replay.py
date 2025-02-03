@@ -1,12 +1,13 @@
 # Directory: src/backend_streaming/providers/opta/replay.py
 # This file is used to replay the events from the event store.
 
-import json
+import time
 from datetime import datetime, timedelta
-from pathlib import Path
 from typing import List, Dict, Tuple
 
-from backend_streaming.config.time import time_config
+
+from backend_streaming.config.time import time_config, TimeConfig
+from backend_streaming.providers.opta.domain.events import DomainEvent, EventEdited, GlobalEventAdded
 from src.backend_streaming.providers.opta.services.queries.match_projector import MatchProjection
 from src.backend_streaming.providers.opta.services.opta_provider import SingleGameStreamer
 from src.backend_streaming.providers.opta.infra.repo.match_projection import MatchProjectionRepository
@@ -16,7 +17,7 @@ from analysis.get_snapshot import get_formatted_name
 from analysis.constants import SNAPSHOTS_DIR, GAME_TO_ID_MAPPING
     
     
-def set_config(match_id: str, speed: float = 500) -> Tuple[List[Dict], datetime]:
+def set_config(match_id: str, speed: float = 500) -> Tuple[List[DomainEvent], TimeConfig]:
     """
     Get the domain events and set the time configuration.
     """
@@ -27,35 +28,35 @@ def set_config(match_id: str, speed: float = 500) -> Tuple[List[Dict], datetime]
     except Exception as e:
         raise e
     
-    # Set simulation start time to first event time
-    start_time = events[0].occurred_on
-    time_config.jump_to(start_time)
+    # Set the simulated start time to the first event and adjust the simulation speed
+    time_config.jump_to(events[0].occurred_on)
     time_config.set_speed(speed)
-    return events, start_time
+    return events, time_config
 
 
 def replay_events(
-    events: List[Dict], 
-    last_push_time: datetime, 
-    push_interval: int = 30
-) -> Tuple[List[Dict], datetime]:
+    events: List[DomainEvent], 
+    current_time: datetime, 
+    is_eog: bool,
+) -> Tuple[List[DomainEvent], int]:
     """
-    Returns a batch of domain events based on the push interval and the new last_push_time.
+    Returns a batch of domain events based until the current time.
+    # NOTE: all events after the game are processed at once. This is bc we could have events updated 24h later...
     """
-    current_batch = []
-    new_last_push_time = last_push_time
-    
-    for event in events:
-        event_time = event.occurred_on
-        # If we've passed the push interval, return current batch
-        if event_time - last_push_time >= timedelta(seconds=push_interval):
-            return current_batch, event_time
+    print("current time", current_time)
+    for i, event in enumerate(events):
+        # process all events that happened after the game at once.
+        if is_eog:
+            break
+
+        # get the time attribute for when the event was added
+        # NOTE: assuming that domain event creation (in our system) roughly aligns with when the event was streamed
+        # This is true unless our system went down. 
+        if event.occurred_on > current_time:
+            return events[:i], i
         
-        current_batch.append(event)
-        new_last_push_time = event_time
-    
-    # Return any remaining events in the final batch
-    return current_batch, new_last_push_time
+    # final return
+    return events, len(events)
 
 
 def stream_read_model(
@@ -65,19 +66,25 @@ def stream_read_model(
 ):
     """
     Reconstructs the READ model from the event store and streams the read states.
+    NOTE: This simulates the event stream which could go past the end of the match (opta makes updates after)
     """
     projector = MatchProjection()
     projector_repo = MatchProjectionRepository(session_factory=None)
     streamer = SingleGameStreamer(game_id=match_id)
-    events, start_time = set_config(match_id, speed)
-    last_push_time = start_time
+    events, time_config = set_config(match_id, speed)
 
-    remaining_events = events
-    while remaining_events:
-        # Get next batch of events
-        batch, last_push_time = replay_events(remaining_events, last_push_time, push_interval)
-        remaining_events = remaining_events[len(batch):]  # Remove processed events
-        
+    # streaming events based on the time passed
+    remaining = events
+    while remaining:
+        time.sleep(push_interval / speed)     
+        curr_time = time_config.now()
+        batch, i = replay_events(
+            events=remaining, 
+            current_time=curr_time, 
+            is_eog= time_config.get_time_passed() >= timedelta(hours=2)
+        )
+        remaining = remaining[i:]
+
         # Update in-memory read model
         for evt in batch:
             projector.project(evt)
@@ -100,6 +107,7 @@ def stream_read_model(
         raise(f"Error sending stop message: {e}")
     finally:
         streamer.close()
+        
 
 def main():
     matches = GAME_TO_ID_MAPPING
