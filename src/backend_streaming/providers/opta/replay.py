@@ -81,7 +81,7 @@ def stream_read_model(
         batch, i = replay_events(
             events=remaining, 
             current_time=curr_time, 
-            is_eog= time_config.get_time_passed() >= timedelta(hours=2)
+            is_eog=time_config.get_time_passed() >= timedelta(hours=2)
         )
         remaining = remaining[i:]
 
@@ -96,17 +96,13 @@ def stream_read_model(
             for feed_event_id, event_entry in match_state.get("events_by_id", {}).items()
         ]
         try:
-            streamer.send_message(message_type="update", events=match_state_read)
+            message_type = "update" if remaining else "stop"
+            streamer.send_message(message_type=message_type, events=match_state_read)
         except Exception as e:
             raise(f"Error sending message: {e}")
 
-    # Send final stop message
-    try:
-        streamer.send_message(message_type="stop")
-    except Exception as e:
-        raise(f"Error sending stop message: {e}")
-    finally:
-        streamer.close()
+    # close the streamer
+    streamer.close()
         
 
 def main():

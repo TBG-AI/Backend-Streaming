@@ -32,17 +32,7 @@ class PostgresEventStore(EventStore):
                 .order_by(DomainEventModel.occurred_on.asc())
                 .all()
             )
-            events = []
-            for row in rows:
-                evt = self._deserialize_event(
-                    event_type=row.event_type,
-                    domain_event_id=row.domain_event_id,
-                    aggregate_id=row.aggregate_id,
-                    occurred_on=row.occurred_on,
-                    payload=row.payload
-                )
-                events.append(evt)
-            return events
+            return self._bulk_deserialize_events(rows)
         finally:
             session.close()
 
@@ -76,6 +66,18 @@ class PostgresEventStore(EventStore):
             session.close()
 
     # -------------- Internal serialization/deserialization --------------
+
+    def _bulk_deserialize_events(self, rows: List[DomainEventModel]) -> List[DomainEvent]:
+        """Deserialize a list of DomainEventModel objects into a list of DomainEvent objects."""
+        return [
+            self._deserialize_event(
+                event_type=row.event_type,
+                domain_event_id=row.domain_event_id,
+                aggregate_id=row.aggregate_id,
+                occurred_on=row.occurred_on,
+                payload=row.payload
+            ) for row in rows
+        ]
 
     def _serialize_event(self, evt: DomainEvent) -> dict:
         """Convert a domain event object to a dict for JSON storage."""

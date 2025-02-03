@@ -1,7 +1,7 @@
 from typing import List
 
 from backend_streaming.providers.opta.infra.models import MatchProjectionModel
-from backend_streaming.providers.opta.domain.entities.sport_events import Qualifier
+from sqlalchemy.orm import Session
 
 
 class MatchProjectionRepository:
@@ -63,5 +63,19 @@ class MatchProjectionRepository:
             return (session.query(MatchProjectionModel)
                           .filter_by(match_id=match_id)
                           .all())
+        finally:
+            session.close()
+
+    @classmethod
+    async def load_events_by_ids(cls, session: Session, event_ids: List[int]) -> List[MatchProjectionModel]:
+        """
+        Load events by their IDs from the database.
+        """
+        try:
+            return (
+                session.query(MatchProjectionModel)
+                .filter(MatchProjectionModel.event_id.in_(event_ids))
+                .all()
+            )
         finally:
             session.close()
