@@ -3,6 +3,9 @@ from typing import List
 from backend_streaming.providers.opta.infra.models import MatchProjectionModel
 from sqlalchemy.orm import Session
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 class MatchProjectionRepository:
     """Responsible for persisting and retrieving the read model in a table."""
@@ -72,10 +75,13 @@ class MatchProjectionRepository:
         Load events by their IDs from the database.
         """
         try:
-            return (
+            rows = (
                 session.query(MatchProjectionModel)
                 .filter(MatchProjectionModel.event_id.in_(event_ids))
                 .all()
             )
+            # TODO: deserialize rows into MatchProjectionModel objects
+            return rows
+
         finally:
             session.close()

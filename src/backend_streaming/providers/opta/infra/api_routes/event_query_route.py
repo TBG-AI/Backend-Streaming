@@ -4,7 +4,11 @@ from backend_streaming.providers.opta.infra.repo.match_projection import MatchPr
 from backend_streaming.providers.opta.infra.db import get_session
 from pydantic import BaseModel
 
+import logging
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
+
 
 # defining custom class since this is a post method
 class EventIdsRequest(BaseModel):
@@ -21,7 +25,8 @@ async def get_events(request: EventIdsRequest) -> List[dict]:
             session=get_session(),
             event_ids=request.event_ids
         )        
-        # NOTE: conversion to dict to stay consistent with streamer's send_message method
+        # conversion to dict to stay consistent with streamer's send_message method
+        # NOTE: calling MatchProjectionModel's to_dict method.
         return [event.to_dict() for event in events]
 
     except Exception as e:
@@ -29,3 +34,7 @@ async def get_events(request: EventIdsRequest) -> List[dict]:
             status_code=500,
             detail=f"Failed to retrieve events: {str(e)}"
         )
+    
+
+if __name__ == "__main__":
+    pass

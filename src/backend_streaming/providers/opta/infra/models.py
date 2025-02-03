@@ -108,6 +108,10 @@ class MatchProjectionModel(Base):
     time_stamp = Column(String, nullable=True)
     last_modified = Column(String, nullable=True)
 
+    def deserialize(self, row: dict) -> 'MatchProjectionModel':
+        """Deserialize a row into a MatchProjectionModel instance."""
+        return MatchProjectionModel(**row)
+
     def to_dict(self) -> dict:
         """Convert model instance to dictionary."""
         result = {}
