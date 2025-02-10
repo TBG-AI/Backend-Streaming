@@ -9,7 +9,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-
 # defining custom class since this is a post method
 class EventIdsRequest(BaseModel):
     event_ids: List[int]

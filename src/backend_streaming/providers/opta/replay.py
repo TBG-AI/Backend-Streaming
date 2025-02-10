@@ -1,49 +1,58 @@
 # Directory: src/backend_streaming/providers/opta/replay.py
 # This file is used to replay the events from the event store.
+from dotenv import load_dotenv
+load_dotenv('.env')
 
 import time
+import json
+import asyncio
+
 from datetime import datetime, timedelta
 from typing import List, Dict, Tuple
 
 
 from backend_streaming.config.time import time_config, TimeConfig
-from backend_streaming.providers.opta.domain.events import DomainEvent, EventEdited, GlobalEventAdded
-from src.backend_streaming.providers.opta.services.queries.match_projector import MatchProjection
-from src.backend_streaming.providers.opta.services.opta_provider import SingleGameStreamer
-from src.backend_streaming.providers.opta.infra.repo.match_projection import MatchProjectionRepository
-from src.backend_streaming.providers.opta.infra.repo.event_store.postgres import PostgresEventStore
-from backend_streaming.providers.opta.infra.db import get_session
-from analysis.get_snapshot import get_formatted_name
+from backend_streaming.providers.opta.services.queries.match_projector import MatchProjection
+from backend_streaming.providers.opta.infra.models import DomainEventModel
+from backend_streaming.providers.opta.services.opta_provider import SingleGameStreamer
+from backend_streaming.providers.opta.infra.repo.match_projection import MatchProjectionRepository
+# src/backend_streaming/providers/opta/infra/models.py
+from backend_streaming.providers.opta.infra.repo.event_store.postgres import PostgresEventStore
 from analysis.constants import SNAPSHOTS_DIR, GAME_TO_ID_MAPPING
-    
-    
-def set_config(match_id: str, speed: float = 500) -> Tuple[List[DomainEvent], TimeConfig]:
+
+def _convert_to_datetime(string: str) -> datetime:
+    return datetime.strptime(string, '%Y-%m-%dT%H:%M:%S.%f')
+
+def set_config(match_id: str, speed: float = 500) -> Tuple[List[DomainEventModel], TimeConfig]:
     """
     Get the domain events and set the time configuration.
     """
     try:
-        event_store = PostgresEventStore(session_factory=get_session)
-        events = event_store.load_events(match_id)
+        # events = event_store.load_events(match_id)
+        file_path = f"{SNAPSHOTS_DIR}/domain_events/{GAME_TO_ID_MAPPING[match_id]}.json"
+        with open(file_path, 'r') as f:
+            events = json.load(f)
+            events = [DomainEventModel(**event) for event in events]
+            # a little bit hacky but trying to just use the static json files
+            events = PostgresEventStore(session_factory=None)._bulk_deserialize_events(events)
         
     except Exception as e:
         raise e
     
-    # Set the simulated start time to the first event and adjust the simulation speed
-    time_config.jump_to(events[0].occurred_on)
+    # NOTE: assuming the first event is the start of the game
+    time_config.jump_to(_convert_to_datetime(events[0].occurred_on))
     time_config.set_speed(speed)
     return events, time_config
 
-
 def replay_events(
-    events: List[DomainEvent], 
+    events: List[DomainEventModel], 
     current_time: datetime, 
     is_eog: bool,
-) -> Tuple[List[DomainEvent], int]:
+) -> Tuple[List[DomainEventModel], int]:
     """
     Returns a batch of domain events based until the current time.
     # NOTE: all events after the game are processed at once. This is bc we could have events updated 24h later...
     """
-    print("current time", current_time)
     for i, event in enumerate(events):
         # process all events that happened after the game at once.
         if is_eog:
@@ -52,14 +61,14 @@ def replay_events(
         # get the time attribute for when the event was added
         # NOTE: assuming that domain event creation (in our system) roughly aligns with when the event was streamed
         # This is true unless our system went down. 
-        if event.occurred_on > current_time:
+        if _convert_to_datetime(event.occurred_on) > current_time:
             return events[:i], i
         
     # final return
     return events, len(events)
 
 
-def stream_read_model(
+async def stream_read_model(
     match_id: str,
     speed: float = 500,
     push_interval: int = 30
@@ -78,6 +87,8 @@ def stream_read_model(
     while remaining:
         time.sleep(push_interval / speed)     
         curr_time = time_config.now()
+        print("time: ", time_config.get_time_passed())
+
         batch, i = replay_events(
             events=remaining, 
             current_time=curr_time, 
@@ -97,12 +108,12 @@ def stream_read_model(
         ]
         try:
             message_type = "update" if remaining else "stop"
-            streamer.send_message(message_type=message_type, events=match_state_read)
+            await streamer.send_message(message_type=message_type, events=match_state_read)
         except Exception as e:
             raise(f"Error sending message: {e}")
 
     # close the streamer
-    streamer.close()
+    await streamer.close()
         
 
 def main():
@@ -149,7 +160,7 @@ def main():
     print(f"Push interval: {push_interval} seconds")
     print("================")
 
-    stream_read_model(match_id, speed, push_interval)
+    asyncio.run(stream_read_model(match_id, speed, push_interval))
 
 if __name__ == "__main__":
     main()
