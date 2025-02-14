@@ -1,5 +1,6 @@
 # Directory: src/backend_streaming/providers/opta/replay.py
 # This file is used to replay the events from the event store.
+# TODO: fix this to use SET????
 from dotenv import load_dotenv
 load_dotenv('.env')
 
