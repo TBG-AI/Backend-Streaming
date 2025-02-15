@@ -79,7 +79,7 @@ class WhoScoredProvider:
     def launch_game_processor(self, game_id: str) -> bool:
         """Launch a single game processor with output going to a log file"""
         temp_script = self.script_dir / f"game_{game_id}_launcher.sh"
-        log_file = self.script_dir / f"game_{game_id}.log"
+        temp_log_file = self.script_dir / f"game_{game_id}.log"
         
         try:
             # Generate single-game script
@@ -90,7 +90,7 @@ class WhoScoredProvider:
             self.logger.info(f"Launching processor for game {game_id}")
             
             # Launch with output redirected to log file
-            with open(log_file, 'w') as f:
+            with open(temp_log_file, 'w') as f:
                 process = subprocess.Popen(
                     [str(temp_script)],
                     stdout=f,
@@ -100,7 +100,7 @@ class WhoScoredProvider:
             
             self.active_processes[game_id] = {
                 'process': process,
-                'log_file': log_file
+                'log_file': temp_log_file
             }
             return True
                 
