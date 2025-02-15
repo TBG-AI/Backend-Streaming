@@ -77,71 +77,48 @@ class WhoScoredProvider:
     
     
     def launch_game_processor(self, game_id: str) -> bool:
-        """Launch a single game processor with output going to a log file"""
+        """Launch a single game processor"""
         temp_script = self.script_dir / f"game_{game_id}_launcher.sh"
-        temp_log_file = self.script_dir / f"game_{game_id}.log"
         
         try:
-            # Generate single-game script
             script_content = self._generate_game_script(game_id)
             temp_script.write_text(script_content)
             temp_script.chmod(0o755)
             
             self.logger.info(f"Launching processor for game {game_id}")
+            process = subprocess.Popen(
+                [str(temp_script)],
+                # Force unbuffered output. 
+                # this is to see the logs in real time
+                env={**os.environ, 'PYTHONUNBUFFERED': '1'},
+                universal_newlines=True
+            )
             
-            # Launch with output redirected to log file
-            with open(temp_log_file, 'w') as f:
-                process = subprocess.Popen(
-                    [str(temp_script)],
-                    stdout=f,
-                    stderr=subprocess.STDOUT,  # Combine stderr into stdout
-                    universal_newlines=True
-                )
-            
-            self.active_processes[game_id] = {
-                'process': process,
-                'log_file': temp_log_file
-            }
+            self.active_processes[game_id] = process
             return True
-                
+            
         except Exception as e:
             self.logger.error(f"Failed to launch game {game_id}: {e}")
             return False
-        # TODO: don't remove since we need logs..?
-        # finally:
-        #     if temp_script.exists():
-        #         temp_script.unlink()
 
-    def monitor_logs(self, game_id: str):
-        """
-        Monitor logs for a specific game.
-        This is a blocking call so need to launch in a thread.
-        """
-        proc_info = self.active_processes.get(game_id)
-        if not proc_info:
-            return
-            
-        with open(proc_info['log_file'], 'r') as f:
-            f.seek(0, 2)  # Seek to end
-            while proc_info['process'].poll() is None:  # While process is running
-                line = f.readline()
-                if line:
-                    self.logger.info(f"Game {game_id}: {line.strip()}")
-                else:
-                    time.sleep(0.1)
+    def cleanup(self):
+        """Cleanup all active processes and temp scripts"""
+        for game_id, process in self.active_processes.items():
+            process.terminate()
+            process.wait()
+            temp_script = self.script_dir / f"game_{game_id}_launcher.sh"
+            if temp_script.exists():
+                temp_script.unlink()
 
     def _generate_game_script(self, game_id: str) -> str:
-        """
-        Generate shell script for a single game
-        TODO: this indentation is a bit ugly.
-        """
+        """Generate shell script for a single game"""
         return f'''#!/bin/bash
                 # Activate conda environment
                 source ~/miniconda3/etc/profile.d/conda.sh
                 conda activate streaming
 
-                # Run the processor
-                python3 "{self.scraper_script}" "{game_id}"
+                # Run the processor in unbuffered mode
+                python3 -u "{self.scraper_script}" "{game_id}"
                 '''
 
     def _filter_schedule(self, schedule: pd.DataFrame, batch_start: datetime, batch_end: datetime) -> pd.DataFrame:
@@ -164,23 +141,16 @@ class WhoScoredProvider:
     
     
 if __name__ == "__main__":
-    from threading import Thread
     provider = WhoScoredProvider()
     
-    # Launch each game and its monitoring thread
+    # Launch each game
     for game_id in ['1821417', '1821389']:
-        # Launch the game
-        if provider.launch_game_processor(game_id):
-            # # Start a dedicated monitoring thread for this game
-            # monitor_thread = Thread(
-            #     target=provider.monitor_logs,
-            #     args=(game_id,),  # Pass game_id to monitor specific game
-            #     name=f"monitor_{game_id}",
-            #     daemon=True
-            # )
-            # monitor_thread.start()
-            pass
+        provider.launch_game_processor(game_id)
     
-    # Keep main thread alive while daemon threads run
-    while any(p['process'].poll() is None for p in provider.active_processes.values()):
+    # Keep main thread alive while processes are running
+    # TODO: should probably use a thread pool here so i don't have to wait
+    while any(p.poll() is None for p in provider.active_processes.values()):
         time.sleep(1)
+
+    # Cleanup
+    provider.cleanup()
