@@ -1,9 +1,10 @@
 import psutil
+import filelock
 from pathlib import Path
 import time
 import undetected_chromedriver as uc
 import soccerdata as sd
-
+import os
 LEAGUE = "ENG-Premier League"
 SEASON = '24-25'
 
@@ -19,13 +20,20 @@ class WhoScored(sd.WhoScored):
 
     def _init_webdriver(self) -> "uc.Chrome":
         """
-        Start the Selenium driver with unique port.
-        TODO: Add the proxy setup if necessary. Currently removed for clarity
+        Start the Selenium driver with unique port and file lock to prevent race conditions.
         """
         if hasattr(self, "_driver"):
             self._driver.quit()
 
-        return uc.Chrome(port=self.driver_port)
+        lock_file = Path(__file__).parent / ".chromedriver_setup.lock"
+        lock = filelock.FileLock(str(lock_file), timeout=30)  # Wait up to 30 seconds
+        
+        try:
+            with lock:
+                return uc.Chrome(port=self.driver_port)
+        except filelock.Timeout:
+            self.logger.error("Timeout waiting for chromedriver setup lock")
+            raise
 
 def setup_whoscored(game_id: str = None) -> sd.WhoScored:
     """

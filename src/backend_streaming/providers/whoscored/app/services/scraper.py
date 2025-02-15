@@ -5,15 +5,11 @@ import time
 from pathlib import Path
 
 from typing import List
-from backend_streaming.providers.whoscored.domain.ws import setup_whoscored
-from backend_streaming.streamer.streamer import SingleGameStreamer
 # NOTE: borrowing opta infra models since we're mapping to opta
 from backend_streaming.providers.opta.infra.models import MatchProjectionModel
 from backend_streaming.providers.opta.infra.repo.match_projection import MatchProjectionRepository
 from backend_streaming.providers.opta.infra.db import get_session
-from datetime import datetime
-from backend_streaming.utils.logging import setup_logger
-import sys
+
 
 class SingleGamesScraper:
     # Get project root directory (assuming consistent project structure)
@@ -113,32 +109,3 @@ class SingleGamesScraper:
             'last_modified': None
         }
         return MatchProjectionModel().deserialize(projection)
-    
-
-def process_game(game_id: str):
-    """Process a single game in its own process"""
-    logger = setup_logger(game_id)
-    
-    try:
-        logger.info(f"Starting game at {datetime.now()}")
-        scraper = SingleGamesScraper(setup_whoscored(game_id=game_id))
-        
-        # TODO: hacky way to emulate a live game
-        for i in range(10):
-            events = scraper.fetch_events(ws_game_id=game_id)
-            logger.info(f"Fetch {i+1}/10: Found {len(events)} events")
-            logger.debug(f"Timestamp: {datetime.now()}")  # More detailed timing info at debug level
-            time.sleep(5)
-            
-    except Exception as e:
-        logger.error(f"Error processing game: {str(e)}", exc_info=True)  # Include stack trace
-        return game_id, 0
-
-if __name__ == "__main__":
-    # Handle command line argument
-    if len(sys.argv) != 2:
-        print("Usage: python scraper.py <game_id>")
-        sys.exit(1)
-    
-    game_id = sys.argv[1]
-    process_game(game_id)

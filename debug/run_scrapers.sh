@@ -6,7 +6,7 @@ GAMES=("1821417")
 
 # Get the absolute path to the scraper script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SCRAPER_SCRIPT="$SCRIPT_DIR/scraper.py"
+SCRAPER_SCRIPT="$SCRIPT_DIR/process_game.py"
 
 # Activate the conda environment if needed
 source ~/miniconda3/etc/profile.d/conda.sh
