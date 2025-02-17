@@ -12,52 +12,56 @@ def find_project_root() -> Path:
 
 PROJECT_ROOT = find_project_root()
 MAPPINGS_DIR = PROJECT_ROOT / "src" / "backend_streaming" / "providers" / "mappings"
+RAW_PAGESOURCES_DIR = PROJECT_ROOT / "src" / "backend_streaming" / "providers" / "whoscored" / "infra" / "data" / "raw_pagesources"
+GAME_SOURCES_DIR = PROJECT_ROOT / "src" / "backend_streaming" / "providers" / "whoscored" / "infra" / "data" / "game_sources"
 
 PLAYER_MAPPING_TYPE = 'player'
 TEAM_MAPPING_TYPE = 'team'
 MATCH_MAPPING_TYPE = 'ws_to_opta_match'
+MATCH_NAMES_TYPE = 'ws_match'
 
 MAX_DURATION = timedelta(hours=3)
+POLL_INTERVAL = 60  # 1 minute
 
-# Add these to your existing config
-DEFAULT_TEAM_VALUES = {
-    'name': 'PLACEHOLDER_TEAM',
-    'short_name': 'PLACEHOLDER',
-    'official_name': 'PLACEHOLDER_TEAM',
-    'code': 'PLC',
-    'type': 'placeholder',
-    'team_type': 'placeholder',
-    'country_id': 'placeholder',
-    'country': 'placeholder',
-    'status': 'active',
-    'city': 'placeholder',
-    'postal_address': 'placeholder',
-    'address_zip': 'placeholder',
-    'founded': 'placeholder',
-    'last_updated': None
-}
+# # Add these to your existing config
+# DEFAULT_TEAM_VALUES = {
+#     'name': 'PLACEHOLDER_TEAM',
+#     'short_name': 'PLACEHOLDER',
+#     'official_name': 'PLACEHOLDER_TEAM',
+#     'code': 'PLC',
+#     'type': 'placeholder',
+#     'team_type': 'placeholder',
+#     'country_id': 'placeholder',
+#     'country': 'placeholder',
+#     'status': 'active',
+#     'city': 'placeholder',
+#     'postal_address': 'placeholder',
+#     'address_zip': 'placeholder',
+#     'founded': 'placeholder',
+#     'last_updated': None
+# }
 
-DEFAULT_PLAYER_VALUES = {
-    'first_name': 'PLACEHOLDER',
-    'last_name': 'PLAYER',
-    'short_first_name': 'PLC',
-    'short_last_name': 'PLR',
-    'gender': 'M',
-    'match_name': 'PLACEHOLDER_PLAYER',
-    'nationality': 'placeholder',
-    'nationality_id': 'placeholder',
-    'position': 'placeholder',
-    'type': 'placeholder',
-    'date_of_birth': 'placeholder',
-    'place_of_birth': 'placeholder',
-    'country_of_birth': 'placeholder',
-    'country_of_birth_id': 'placeholder',
-    'height': 0,
-    'weight': 0,
-    'foot': 'placeholder',
-    'shirt_number': 0,
-    'status': 'active',
-    'active': 'true',
-    'team_name': 'PLACEHOLDER_TEAM',
-    'last_updated': None
-}
+# DEFAULT_PLAYER_VALUES = {
+#     'first_name': 'PLACEHOLDER',
+#     'last_name': 'PLAYER',
+#     'short_first_name': 'PLC',
+#     'short_last_name': 'PLR',
+#     'gender': 'M',
+#     'match_name': 'PLACEHOLDER_PLAYER',
+#     'nationality': 'placeholder',
+#     'nationality_id': 'placeholder',
+#     'position': 'placeholder',
+#     'type': 'placeholder',
+#     'date_of_birth': 'placeholder',
+#     'place_of_birth': 'placeholder',
+#     'country_of_birth': 'placeholder',
+#     'country_of_birth_id': 'placeholder',
+#     'height': 0,
+#     'weight': 0,
+#     'foot': 'placeholder',
+#     'shirt_number': 0,
+#     'status': 'active',
+#     'active': 'true',
+#     'team_name': 'PLACEHOLDER_TEAM',
+#     'last_updated': None
+# }

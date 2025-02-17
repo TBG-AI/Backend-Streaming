@@ -15,6 +15,10 @@ QUEUE_NAME = os.getenv('QUEUE_NAME')
 
 
 class SingleGameStreamer:
+    
+    PROGRESS_MESSAGE_TYPE = 'update'
+    STOP_MESSAGE_TYPE = 'stop'
+
     def __init__(
         self, 
         game_id: str, 

@@ -3,6 +3,10 @@ import json
 import logging
 from typing import Dict
 from backend_streaming.providers.whoscored.domain.mappings import MappingRepository
+from datetime import datetime
+from sqlalchemy.orm import Session
+from backend_streaming.providers.opta.infra.models import PlayerModel, TeamModel
+from backend_streaming.providers.opta.infra.db import get_session
 
 # TODO: change this to a database!
 
@@ -38,3 +42,50 @@ class FileMappingRepository(MappingRepository):
         except Exception as e:
             self.logger.error(f"Failed to save mappings: {e}")
             raise
+
+    def insert_team_id(self, team_id: str) -> None:
+        """adding new team to db"""
+        pass
+
+    def insert_player_id(self, player_id: str, team_id: str) -> None:
+        """
+        insert new player to db
+        """      
+        session = get_session()
+        try:
+            # Create and add all player models
+            session.add(
+                PlayerModel(
+                    player_id=player_id,
+                    first_name="PLACEHOLDER",
+                    last_name=f"PLACEHOLDER",
+                    short_first_name="PLACEHOLDER",
+                    short_last_name="PLACEHOLDER",
+                    gender="PLACEHOLDER",
+                    match_name=f"PLACEHOLDER",
+                    nationality="PLACEHOLDER",
+                    nationality_id="PLACEHOLDER",
+                    position="PLACEHOLDER",
+                    type="PLACEHOLDER",
+                    date_of_birth="PLACEHOLDER",
+                    place_of_birth="PLACEHOLDER",
+                    country_of_birth="PLACEHOLDER",
+                    country_of_birth_id="PLACEHOLDER",
+                    height=0,
+                    weight=0,
+                    foot="PLACEHOLDER",
+                    shirt_number=0,
+                    status="active",
+                    active="true",
+                    team_id=team_id,
+                    team_name="PLACEHOLDER",
+                    last_updated=datetime.utcnow().isoformat()
+                )
+            )
+            session.commit()
+            
+        except Exception as e:
+            session.rollback()
+            raise
+        finally:
+            session.close()

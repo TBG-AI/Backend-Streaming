@@ -1,20 +1,26 @@
 import sys
 import time
-from datetime import datetime, timedelta
-from backend_streaming.providers.whoscored.domain.ws import setup_whoscored
-from backend_streaming.providers.whoscored.app.services.scraper import SingleGamesScraper
-from backend_streaming.providers.whoscored.infra.logs.logger import setup_game_logger
-from backend_streaming.providers.whoscored.infra.config import MAX_DURATION
+import asyncio
+import logging
 
-# TODO: remove this in production!
-# MAX_DURATION = timedelta(minutes=1)
+from typing import List
+from datetime import datetime
+from backend_streaming.streamer.streamer import SingleGameStreamer
+from backend_streaming.providers.whoscored.domain.ws import setup_whoscored
+from backend_streaming.providers.whoscored.app.services.scraper import SingleGameScraper
+from backend_streaming.providers.whoscored.infra.logs.logger import setup_game_logger
+from backend_streaming.providers.whoscored.infra.config import POLL_INTERVAL
+
+
 
 def process_game(game_id: str):
     """
     Process a single game, continuously fetching events until game completion
     or maximum duration reached.
     """
+    # setup
     logger = setup_game_logger(game_id)
+    streamer = SingleGameStreamer(game_id)
     start_time = datetime.now()
     fetch_stats = {
         'total_fetches': 0,
@@ -23,21 +29,25 @@ def process_game(game_id: str):
         'last_fetch_time': None,
         'last_event_count': 0
     }
+
     try:
         logger.info(f"Starting game processor at {start_time}")
-        scraper = SingleGamesScraper(setup_whoscored(game_id=game_id))
-        
-        # TODO: implement method to properly identify game completion
-        # For now, continue until max duration
-        # while datetime.now() - start_time < MAX_DURATION:
-        for _ in range(1):
+        scraper = SingleGameScraper(setup_whoscored(game_id=game_id))
+
+        is_eog = False
+        while not is_eog:
             fetch_stats['total_fetches'] += 1
             current_time = datetime.now()
-            
+
+            # TODO: implement proper condition to check for eog...
+            # For now, just running once to prevent infinite loop.
+            is_eog = True
+           
             try:
-                events = scraper.fetch_events(ws_game_id=game_id)
+                # get the events
+                events = scraper.fetch_events()
                 fetch_stats['last_fetch_time'] = current_time
-                
+                # log useful stats
                 if events:
                     fetch_stats['successful_fetches'] += 1
                     fetch_stats['total_events'] = len(events)
@@ -47,32 +57,39 @@ def process_game(game_id: str):
                         f"Found {len(events)} events. "
                         f"Total successful fetches: {fetch_stats['successful_fetches']}"
                     )
-                else:
-                    logger.warning(
-                        f"Fetch {fetch_stats['total_fetches']}: "
-                        f"No events found. "
-                        f"Total successful fetches: {fetch_stats['successful_fetches']}"
-                    )
-                
+                    # stream into designated queue
+                    asyncio.run(stream_events(streamer, events, logger, is_eog=is_eog))
             except Exception as fetch_error:
                 logger.error(f"Error during fetch: {fetch_error}", exc_info=True)
-            
-            # Log summary every 15 minutes
-            if fetch_stats['total_fetches'] % 180 == 0:  # Assuming 5-second intervals
-                logger.info(
-                    f"Summary after {fetch_stats['total_fetches']} fetches:\n"
-                    f"Successful fetches: {fetch_stats['successful_fetches']}\n"
-                    f"Total events: {fetch_stats['total_events']}\n"
-                    f"Running for: {datetime.now() - start_time}"
-                )
-            
-            time.sleep(5)  # Poll interval
-            
+               
+            time.sleep(POLL_INTERVAL)  
+        
+        # final send through streamer to dictate end of game. 
         logger.info(f"Game processor completed. Final stats: {fetch_stats}")
         
     except Exception as e:
         logger.error(f"Fatal error in game processor: {e}", exc_info=True)
         raise
+
+
+async def stream_events(
+    streamer: SingleGameStreamer, 
+    events: List[dict],
+    logger: logging.Logger,
+    is_eog: bool = False,
+):
+    """Helper function to stream events asynchronously"""
+    try:
+        message_type = streamer.STOP_MESSAGE_TYPE if is_eog else streamer.PROGRESS_MESSAGE_TYPE
+        await streamer.connect()
+        await streamer.send_message(message_type, events)
+        logger.info(f"Streamed {len(events)} events")
+    except Exception as e:
+        logger.error(f"Failed to stream events: {e}")
+        raise
+    finally:
+        await streamer.close()
+
 
 if __name__ == "__main__":
     # Handle command line argument

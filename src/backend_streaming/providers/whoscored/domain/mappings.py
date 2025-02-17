@@ -1,9 +1,10 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 from abc import ABC, abstractmethod
-import uuid
-from backend_streaming.providers.whoscored.infra.config import PLAYER_MAPPING_TYPE, TEAM_MAPPING_TYPE, MATCH_MAPPING_TYPE
+import string
+import random
+from backend_streaming.providers.whoscored.infra.config import PLAYER_MAPPING_TYPE, TEAM_MAPPING_TYPE, MATCH_MAPPING_TYPE, MATCH_NAMES_TYPE
 
 class MappingRepository(ABC):
     """Abstract base class for WhoScored-to-Opta ID mapping storage"""
@@ -17,15 +18,28 @@ class MappingRepository(ABC):
         """Save mappings to storage"""
         pass
 
+    @abstractmethod
+    def insert_player_id(self, player_id: str, team_id: str) -> None:
+        """adding new player to db"""
+        pass
+
+    @abstractmethod
+    def insert_team_id(self, team_id: str) -> None:
+        """adding new team to db"""
+        pass
+    
+
 @dataclass
 class WhoScoredToOptaMappings:
     """
     Manages ID mappings between WhoScored and Opta formats.
     Used for converting scraped WhoScored data to Opta format.
     """
+    # NOTE: these should be the same as the json file names in the mappings directory
     player_ids: Dict[str, str]
     team_ids: Dict[str, str]
     ws_to_opta_match_ids: Dict[str, str]
+    ws_match_ids: Dict[str, str]
     repository: MappingRepository
     
     @classmethod
@@ -35,30 +49,32 @@ class WhoScoredToOptaMappings:
             player_ids=repository.load(PLAYER_MAPPING_TYPE),
             team_ids=repository.load(TEAM_MAPPING_TYPE),
             ws_to_opta_match_ids=repository.load(MATCH_MAPPING_TYPE),
+            ws_match_ids=repository.load(MATCH_NAMES_TYPE),
             repository=repository
         )
 
-    def get_or_create_mapping(self, mapping_type: str, ws_id: str) -> Optional[str]:
+    def get_mapping(self, mapping_type: str, ws_id: str) -> Optional[str]:
         """
-        Get existing Opta ID or create new one for WhoScored ID.
-        
-        Args:
-            mapping_type: Type of ID ('player', 'team', or 'match')
-            ws_id: WhoScored ID to map
-            
-        Returns:
-            Optional[str]: Corresponding Opta ID
+        Get existing Opta ID for WhoScored ID.
+        If no mapping is found, flag it. We will update the mappings table later.
         """
         if not ws_id:
             return None
-            
+
+        if isinstance(ws_id, int):
+            ws_id = str(ws_id)
+
         mappings = getattr(self, f"{mapping_type}_ids")
-        
         if ws_id not in mappings:
-            import ipdb; ipdb.set_trace()
-            new_id = str(uuid.uuid4())
-            mappings[ws_id] = new_id
-            self.repository.save(mapping_type, mappings)
-            return new_id
+            # TODO: flag this properly 
+            raise ValueError(f"No mapping found for {ws_id} in {mapping_type}")
             
         return mappings[ws_id]
+
+    def insert_player_id(self, player_id: str, team_id: str) -> None:
+        """
+        Insert new player ID and create placeholder entry in database.
+        """
+        self.repository.insert_player_id(player_id, team_id)
+        
+        
