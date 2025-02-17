@@ -1,9 +1,13 @@
 import sys
+import time
 from datetime import datetime, timedelta
 from backend_streaming.providers.whoscored.domain.ws import setup_whoscored
 from backend_streaming.providers.whoscored.app.services.scraper import SingleGamesScraper
 from backend_streaming.providers.whoscored.infra.logs.logger import setup_game_logger
-import time
+from backend_streaming.providers.whoscored.infra.config import MAX_DURATION
+
+# TODO: remove this in production!
+# MAX_DURATION = timedelta(minutes=1)
 
 def process_game(game_id: str):
     """
@@ -19,14 +23,13 @@ def process_game(game_id: str):
         'last_fetch_time': None,
         'last_event_count': 0
     }
-    
     try:
         logger.info(f"Starting game processor at {start_time}")
         scraper = SingleGamesScraper(setup_whoscored(game_id=game_id))
         
-        # Continue until max duration (e.g., 3 hours) or game completion
-        # while datetime.now() - start_time < timedelta(hours=3):
-        # TODO: THIS IS HACKY!
+        # TODO: implement method to properly identify game completion
+        # For now, continue until max duration
+        # while datetime.now() - start_time < MAX_DURATION:
         for _ in range(1):
             fetch_stats['total_fetches'] += 1
             current_time = datetime.now()

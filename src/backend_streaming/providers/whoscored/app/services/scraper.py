@@ -1,106 +1,95 @@
 # this is the service that fetches the events using the soccerdata package
-import json
-import soccerdata as sd
-import time
-from pathlib import Path
-
 from typing import List
-# NOTE: borrowing opta infra models since we're mapping to opta
 from backend_streaming.providers.opta.infra.models import MatchProjectionModel
 from backend_streaming.providers.opta.infra.repo.match_projection import MatchProjectionRepository
 from backend_streaming.providers.opta.infra.db import get_session
+from backend_streaming.providers.whoscored.infra.logs.logger import setup_game_logger
+from backend_streaming.providers.whoscored.domain.mappings import WhoScoredToOptaMappings
+from backend_streaming.providers.whoscored.infra.repos.file_mapping_repo import FileMappingRepository
+from backend_streaming.providers.whoscored.infra.config import MAPPINGS_DIR
+from backend_streaming.providers.whoscored.domain.ws import WhoScored
+from backend_streaming.providers.whoscored.infra.config import PLAYER_MAPPING_TYPE, TEAM_MAPPING_TYPE, MATCH_MAPPING_TYPE
 
+# TODO: need to add contestant_ids and player_ids to the mappings.
 
 class SingleGamesScraper:
-    # Get project root directory (assuming consistent project structure)
-    PROJECT_ROOT = Path(__file__).parents[5]  # Go up 5 levels from scraper.py to reach project root
-    
-    # Use absolute paths for mappings
-    # TODO: this is very dirty...
-    PLAYER_MAPPINGS = json.load(open(PROJECT_ROOT / 'backend_streaming/mappings/player_ids.json'))
-    TEAM_MAPPINGS = json.load(open(PROJECT_ROOT / 'backend_streaming/mappings/team_ids.json'))
-    MATCH_MAPPINGS = json.load(open(PROJECT_ROOT / 'backend_streaming/mappings/ws_to_opta_match_ids.json'))
-    UNFOUND_ID = 'aaaaaaaaaaaaaaaaaaaaaaaaa'
-
-    STOP_MESSAGE_TYPE = 'stop'
-    # TODO: currently not using with SingleGameStreamer since selenium can't support multiple live games
-    # fix webdriver complexities???
-    PROGRESS_MESSAGE_TYPE = 'update'
-
-    def __init__(self, scraper):
-        self.scraper = scraper
-        self.repo = MatchProjectionRepository(session_factory=get_session)
-    
+    """
+    Scrapes and processes WhoScored game events.
+    Maps WhoScored IDs to Opta IDs using predefined mappings.
+    """    
+    def __init__(self, whoscored_client: WhoScored):
+        """
+        Initialize scraper with WhoScored client and mappings.
+        
+        Args:
+            whoscored_client: Initialized WhoScored client
+        """
+        self.client = whoscored_client
+        self.proj_repo = MatchProjectionRepository(session_factory=get_session)
+        
+        # Initialize mappings with file repository
+        mapping_repository = FileMappingRepository(MAPPINGS_DIR)
+        self.mappings = WhoScoredToOptaMappings.create(mapping_repository)
+        self.logger = setup_game_logger(self.client.game_id)
+        
     def fetch_events(self, ws_game_id: str) -> List[MatchProjectionModel]:
         """
-        Fetch all whoscored events and format to MatchProjectionModel instances.
-        Saves to table and returns the list of MatchProjectionModel instances.
+        Fetch and process WhoScored events.
+        
+        Args:
+            ws_game_id: WhoScored game ID
+            
+        Returns:
+            List[MatchProjectionModel]: Processed event models
         """
-        # TODO: sometimes scraper gets empty events. Make sure to flag this so we can run manually!!!!
-        print("...starting fetch events")
         int_game_id = int(ws_game_id)
-        events = self.scraper.read_events(
-            match_id=int_game_id, 
-            output_fmt="raw", 
+        events = self.client.read_events(
+            match_id=int_game_id,
+            output_fmt="raw",
             force_cache=True,
-            live=True 
+            live=True
         )
+        
         if not events:
-            print(f"No events found for game {ws_game_id}")
+            self.logger.warning(f"No events found for game {ws_game_id}")
             return []
-        print("...finished fetching events")
-        projections = [self._convert_to_projection(event) for event in events[int_game_id]]
-        print("...finished converting to projections")
-        self.repo.save_match_state(projections)
-        print("...finished saving to db")
+            
+        projections = [
+            self._convert_to_projection(event) 
+            for event in events[int_game_id]
+        ]
+        self.proj_repo.save_match_state(projections)
         return projections
-    
-    # async def stream_events(
-    #     self, 
-    #     events: List[MatchProjectionModel]
-    # ):
-    #     """
-    #     Publishing events to RabbitMQ. 
-    #     For now, assuming we're only streaming at the end of the game.
-    #     """
-    #     try:
-    #         await self.streamer.connect()
-    #         await self.streamer.send_message(message_type=self.STOP_MESSAGE_TYPE, events=events)
-    #     finally:
-    #         await self.streamer.close()
         
     def _convert_to_projection(self, event: dict) -> MatchProjectionModel:
         """
-        Convert a single event to a MatchProjectionModel instance
+        Convert WhoScored event to Opta projection format.
+        
+        Args:
+            event: Raw WhoScored event
+            
+        Returns:
+            MatchProjectionModel: Converted event in Opta format
         """
-        # Transform qualifiers to the desired format
-        transformed_qualifiers = []
-        if event.get('qualifiers', {}):
-            for qualifier in event['qualifiers']:
-                transformed_qualifier = {
-                    'qualifierId': qualifier['type']['value'],
-                    'value': qualifier.get('value', '')
-                }
-                transformed_qualifiers.append(transformed_qualifier)
-
-        # Get corresponding Opta IDs from mappings
-        ws_match_id = str(event.get('matchId'))
+        transformed_qualifiers = self._transform_qualifiers(
+            event.get('qualifiers', {})
+        )
+        
+        # Map IDs to Opta format
+        # TODO: if there are unmapped player or team ids, we need to also update the player and team tables!!!!
         ws_player_id = str(event.get('playerId')) if event.get('playerId') else None
         ws_team_id = str(event.get('teamId')) if event.get('teamId') else None
-
-        # TODO: need better conversion here. 
-        # will need to constantly update the list of mappings for new ids 
         projection = {
-            'match_id': self.MATCH_MAPPINGS.get(ws_match_id) or self.UNFOUND_ID,  # Convert to Opta match ID
+            'match_id': self.mappings.get_or_create_mapping(MATCH_MAPPING_TYPE, self.client.game_id),
+            'player_id': self.mappings.get_or_create_mapping(PLAYER_MAPPING_TYPE, ws_player_id),
+            'contestant_id': self.mappings.get_or_create_mapping(TEAM_MAPPING_TYPE, ws_team_id),
             'event_id': event['id'],
             'local_event_id': event.get('eventId'),
             'type_id': event.get('type', {}).get('value'),
             'period_id': event.get('period', {}).get('value'),
             'time_min': event.get('minute'),
             'time_sec': event.get('second'),
-            'player_id': self.PLAYER_MAPPINGS.get(ws_player_id) or self.UNFOUND_ID,  # Convert to Opta player ID
-            'contestant_id': self.TEAM_MAPPINGS.get(ws_team_id) or self.UNFOUND_ID,  # Convert to Opta team ID
-            'player_name': None,  # You'll need to get this from a separate mapping
+            'player_name': None,
             'outcome': event.get('outcomeType', {}).get('value'),
             'x': event.get('x'),
             'y': event.get('y'),
@@ -108,4 +97,23 @@ class SingleGamesScraper:
             'time_stamp': None,
             'last_modified': None
         }
+        
         return MatchProjectionModel().deserialize(projection)
+            
+    def _transform_qualifiers(self, qualifiers: dict) -> List[dict]:
+        """
+        Transform WhoScored qualifiers to Opta format.
+        
+        Args:
+            qualifiers: WhoScored qualifiers
+            
+        Returns:
+            List[dict]: Transformed qualifiers in Opta format
+        """
+        transformed = []
+        for qualifier in qualifiers:
+            transformed.append({
+                'qualifierId': qualifier['type']['value'],
+                'value': qualifier.get('value', '')
+            })
+        return transformed

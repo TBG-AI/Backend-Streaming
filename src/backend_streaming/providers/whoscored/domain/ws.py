@@ -5,13 +5,19 @@ import time
 import undetected_chromedriver as uc
 import soccerdata as sd
 import os
+from dataclasses import dataclass
+from typing import Dict
+import json
+
 LEAGUE = "ENG-Premier League"
 SEASON = '24-25'
+
 
 class WhoScored(sd.WhoScored):
     def __init__(self, game_id: str, *args, **kwargs):
         """
-        Keeping it the same name as the base
+        Custom WhoScored class to handle unique ChromeDriver setup for each game
+        NOTE: keeping the same name as the base class to properly inherit class properties
         """
         self.game_id = game_id
         # Calculate unique port for ChromeDriver
@@ -35,6 +41,7 @@ class WhoScored(sd.WhoScored):
             self.logger.error("Timeout waiting for chromedriver setup lock")
             raise
 
+
 def setup_whoscored(game_id: str = None) -> sd.WhoScored:
     """
     Set up the WhoScored scraper with isolated resources if game_id is provided
@@ -51,6 +58,7 @@ def setup_whoscored(game_id: str = None) -> sd.WhoScored:
             seasons=SEASON,
         )
     
+
 
 def wait_for_chromedriver_setup(chrome_data_dir: str, timeout: int = 30) -> bool:
     """

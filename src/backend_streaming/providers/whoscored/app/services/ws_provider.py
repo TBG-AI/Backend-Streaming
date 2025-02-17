@@ -1,22 +1,15 @@
 import pytz
 import pandas as pd
 import soccerdata as sd
-import time
 import os
 import subprocess
-import sys
+
 from pathlib import Path
 from typing import List, Dict
-import logging
-import argparse
-
-from io import TextIOWrapper
 from datetime import datetime, timedelta
 from backend_streaming.providers.whoscored.domain.ws import setup_whoscored
 from apscheduler.schedulers.background import BackgroundScheduler
 from backend_streaming.providers.whoscored.infra.logs.logger import setup_provider_logger
-
-# TODO: constantly upsdate the mappings for new players. or fill with new mappings
 
     
 class WhoScoredProvider:
@@ -34,20 +27,50 @@ class WhoScoredProvider:
         self.scraper_script = self.script_dir / "run_scraper.py"
         self.active_processes = {}  # game_id -> process mapping
         self.logger = setup_provider_logger()
+
+    def get_scheduler_status(self) -> dict:
+        """
+        Get current status of scheduled jobs.
         
-        # Setup logging
-        logging.basicConfig(
-            level=logging.INFO,
-            format='%(asctime)s - %(levelname)s - %(message)s'
-        )
+        Returns:
+            dict: Contains counts of jobs in different states
+        """
+        if not self.scheduler.running:
+            return {
+                'status': 'stopped',
+                'scheduled_jobs': 0,
+                'running_jobs': 0,
+                'next_runtime': None
+            }
+        
+        self._cleanup()
+        jobs = self.scheduler.get_jobs()
+        running_processes = len(self.active_processes)
+        next_job = min((job.next_run_time for job in jobs if job.next_run_time), default=None)
+
+        return {
+            'status': 'running',
+            'scheduled_jobs': len(jobs),
+            'running_jobs': running_processes,
+            'next_runtime': next_job
+        }
 
     def schedule_batch(
         self,
         batch_start: datetime,
         batch_end: datetime,
-        force_cache: bool=False
+        force_cache: bool=False,
+        # will launch first 5 games in parallel immediately
+        debug: bool=False
     ):
-        """Schedule multiple game processors"""
+        """
+        Schedule multiple game processors
+        """
+        if debug: 
+            self.logger = setup_provider_logger(file_name="provider_debug")
+            la_tz = pytz.timezone('America/Los_Angeles')
+            start_time = datetime.now(pytz.UTC).astimezone(la_tz) + timedelta(seconds=10)
+        
         if not self.scheduler.running:
             self.scheduler.start()
         
@@ -55,9 +78,13 @@ class WhoScoredProvider:
             scraper = setup_whoscored()
             schedule = scraper.read_schedule(force_cache=force_cache)
             batch = self._filter_schedule(schedule, batch_start, batch_end)
+            if debug:
+                batch = batch[:5]
             
-            for start_time, row in batch.iterrows():
+            for _, row in batch.iterrows():
                 game_id = row['game_id']
+                # TODO: make sure to convert our deployment timezone to UTC
+                start_time = start_time if debug else row['start_time']
                 self.logger.info(f"Scheduling game {game_id} for {start_time}")
                 
                 self.scheduler.add_job(
@@ -101,14 +128,24 @@ class WhoScoredProvider:
             self.logger.error(f"Failed to launch game {game_id}: {e}")
             return False
 
-    def cleanup(self):
-        """Cleanup all active processes and temp scripts"""
+    def _cleanup(self, terminate: bool=False):
+        """
+        Cleanup finished processes and temp scripts.
+        If terminate is True, will terminate all processes.
+        """
+        # Clean up completed processes
+        completed_games = []
         for game_id, process in self.active_processes.items():
-            process.terminate()
-            process.wait()
-            temp_script = self.script_dir / f"game_{game_id}_launcher.sh"
-            if temp_script.exists():
-                temp_script.unlink()
+            if terminate or process.poll() is not None:  # Process has finished
+                completed_games.append(game_id)
+                # Clean up the temp script
+                temp_script = self.script_dir / f"game_{game_id}_launcher.sh"
+                if temp_script.exists():
+                    temp_script.unlink()
+                    
+        # Remove completed processes from active_processes
+        for game_id in completed_games:
+            del self.active_processes[game_id]
 
     def _generate_game_script(self, game_id: str) -> str:
         """Generate shell script for a single game"""
@@ -141,16 +178,57 @@ class WhoScoredProvider:
     
     
 if __name__ == "__main__":
+    import time
+    ###################################################
+    # Testing if we can launch multiple games at once #
+    ###################################################
+    # provider = WhoScoredProvider()
+    
+    # # Launch each game
+    # for game_id in ['1821417', '1821389']:
+    #     provider.launch_game_processor(game_id)
+
+    # while any(p.poll() is None for p in provider.active_processes.values()):
+    #     time.sleep(1)
+    # # Cleanup
+    # provider.cleanup()
+
+    ####################################################
+    # Testing to see if we can schedule multiple games #
+    ####################################################
+    timezone = pytz.timezone('UTC') 
     provider = WhoScoredProvider()
     
-    # Launch each game
-    for game_id in ['1821417', '1821389']:
-        provider.launch_game_processor(game_id)
-    
-    # Keep main thread alive while processes are running
-    # TODO: should probably use a thread pool here so i don't have to wait
-    while any(p.poll() is None for p in provider.active_processes.values()):
-        time.sleep(1)
+    try:
+        # Schedule the batch
+        provider.schedule_batch(
+            batch_start=timezone.localize(datetime(2025, 1, 25)),
+            batch_end=timezone.localize(datetime(2025, 1, 25)),
+            force_cache=True,
+            debug=True
+        )
+        
+        # Keep main thread alive while there are scheduled or running jobs
+        while True:
+            status = provider.get_scheduler_status()
+            
+            # Exit if no more scheduled jobs and no running processes
+            if status['scheduled_jobs'] == 0 and status['running_jobs'] == 0:
+                provider.logger.info("All jobs completed. Exiting...")
+                break
+                
+            provider.logger.info(
+                f"Status: {status['scheduled_jobs']} scheduled, "
+                f"{status['running_jobs']} running. "
+                f"Next run at: {status['next_runtime']}"
+            )
+            time.sleep(10)  # Check every 10 seconds
+            
+    except KeyboardInterrupt:
+        provider.logger.info("Received interrupt signal. Cleaning up...")
 
-    # Cleanup
-    provider.cleanup()
+    finally:
+        provider._cleanup(terminate=True)
+        provider.scheduler.shutdown()
+
+   
