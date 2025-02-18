@@ -4,7 +4,9 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy_utils import database_exists, create_database
 from backend_streaming.providers.opta.infra.models import Base
 
-DATABASE_URL = "postgresql://ryankang@localhost:5432/opta_test"
+import os
+
+DATABASE_URL = os.getenv("DATABASE_URL")
 # ↑ Adjust this connection string to your actual Postgres details.
 
 # 1. Create Engine

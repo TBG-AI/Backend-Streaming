@@ -12,6 +12,10 @@ def find_project_root() -> Path:
 
 PROJECT_ROOT = find_project_root()
 MAPPINGS_DIR = PROJECT_ROOT / "src" / "backend_streaming" / "providers" / "mappings"
+WS_TO_OPTA_MATCH_MAPPING_PATH = MAPPINGS_DIR / "ws_to_opta_match_ids.json"
+
+
+
 RAW_PAGESOURCES_DIR = PROJECT_ROOT / "src" / "backend_streaming" / "providers" / "whoscored" / "infra" / "data" / "raw_pagesources"
 GAME_SOURCES_DIR = PROJECT_ROOT / "src" / "backend_streaming" / "providers" / "whoscored" / "infra" / "data" / "game_sources"
 

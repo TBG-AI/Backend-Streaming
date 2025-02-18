@@ -21,7 +21,7 @@ from backend_streaming.providers.whoscored.infra.config import (
     MATCH_NAMES_TYPE
 )
 
-# TODO: need to add contestant_ids and player_ids to the mappings.
+# TODO: The mapping functionality is unnecessarily complex...
 
 class SingleGameScraper:
     """

@@ -2,15 +2,14 @@ import sys
 import time
 import asyncio
 import logging
-
+import json
 from typing import List
 from datetime import datetime
 from backend_streaming.streamer.streamer import SingleGameStreamer
 from backend_streaming.providers.whoscored.domain.ws import setup_whoscored
 from backend_streaming.providers.whoscored.app.services.scraper import SingleGameScraper
 from backend_streaming.providers.whoscored.infra.logs.logger import setup_game_logger
-from backend_streaming.providers.whoscored.infra.config import POLL_INTERVAL
-
+from backend_streaming.providers.whoscored.infra.config import POLL_INTERVAL, WS_TO_OPTA_MATCH_MAPPING_PATH
 
 
 def process_game(game_id: str):
@@ -18,9 +17,12 @@ def process_game(game_id: str):
     Process a single game, continuously fetching events until game completion
     or maximum duration reached.
     """
+    with open(WS_TO_OPTA_MATCH_MAPPING_PATH, 'r') as f:
+        ws_to_opta_match_mapping = json.load(f)
+
     # setup
     logger = setup_game_logger(game_id)
-    streamer = SingleGameStreamer(game_id)
+    streamer = SingleGameStreamer(ws_to_opta_match_mapping[game_id])
     start_time = datetime.now()
     fetch_stats = {
         'total_fetches': 0,
