@@ -13,7 +13,6 @@ from backend_streaming.providers.opta.infra.oath import get_auth_headers
 from backend_streaming.providers.opta.infra.api import get_match_events
 from backend_streaming.providers.opta.constants import EPL_TOURNAMENT_ID
 from backend_streaming.providers.opta.domain.value_objects.sport_event_enums import EventType
-from backend_streaming.utils.logging import setup_logger
 
 from backend_streaming.providers.opta.infra.db import get_session
 
@@ -30,6 +29,8 @@ from backend_streaming.providers.opta.domain.events import DomainEvent
 
 # streamer
 from backend_streaming.streamer.streamer import SingleGameStreamer
+
+logger = logging.getLogger(__name__)
 
 class OptaStreamer:
     def __init__(
@@ -61,7 +62,7 @@ class OptaStreamer:
         if event_store_filename is None:
             event_store_filename = f"{match_id}.json"
         
-        self.logger = setup_logger(__name__, log_file=log_file)
+        self.logger = logger
         
         
         self.event_store = event_store or PostgresEventStore(session_factory=get_session)

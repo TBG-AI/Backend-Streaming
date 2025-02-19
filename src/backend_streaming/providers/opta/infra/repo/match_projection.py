@@ -1,17 +1,16 @@
-from typing import List
+from typing import List, Optional
 
 from backend_streaming.providers.opta.infra.models import MatchProjectionModel
 from sqlalchemy.orm import Session
 
 import logging
-logger = logging.getLogger(__name__)
 
 
 class MatchProjectionRepository:
     """Responsible for persisting and retrieving the read model in a table."""
-    def __init__(self, session_factory, logger):
+    def __init__(self, session_factory, logger: Optional[logging.Logger] = None):
         self.session_factory = session_factory
-        self.logger = logger
+        self.logger = logger or logging.getLogger(__name__)
 
     def _convert_to_orm_model(
         self, 
