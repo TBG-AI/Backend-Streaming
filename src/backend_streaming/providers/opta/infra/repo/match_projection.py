@@ -1,6 +1,7 @@
 from typing import List, Optional
 
 from backend_streaming.providers.opta.infra.models import MatchProjectionModel
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 import logging
@@ -40,33 +41,34 @@ class MatchProjectionRepository:
             last_modified=event_entry["last_modified"]
         )
 
-    def save_match_state(
-        self,
-        orm_models: List[MatchProjectionModel]
-    ):    
+    def save_match_state(self, projections: List[dict]):    
         session = self.session_factory()
         try:
             # Track seen event IDs and build list of unique models
             seen_events = {}
             unique_models = []
             
-            for model in orm_models:
-                if model.event_id in seen_events:
+            for projection in projections:
+                if projection['event_id'] in seen_events:
                     # Log duplicate with details for investigation
                     self.logger.warning(
                         f"Duplicate event detected:\n"
-                        f"  Event ID: {model.event_id}\n"
+                        f"  Event ID: {projection['event_id']}\n"
                     )
                     continue
                 
-                seen_events[model.event_id] = model
-                unique_models.append(model)
+                seen_events[projection['event_id']] = projection
+                unique_models.append(projection)
             
-            # Merge only the unique models
-            for model in unique_models:
-                session.merge(model)
-                
-            self.logger.info(f"Saving {len(unique_models)} projections")
+            self.logger.info(f"upserting {len(unique_models)} projections") 
+            # Bulk upsert using PostgreSQL's INSERT ... ON CONFLICT
+            stmt = insert(MatchProjectionModel).values(unique_models)
+            stmt = stmt.on_conflict_do_update(
+                constraint='uq_match_projection_event_id',  # Specify the constraint name
+                set_=stmt.excluded
+            )
+            
+            session.execute(stmt)
             session.commit()
             
         except Exception as e:

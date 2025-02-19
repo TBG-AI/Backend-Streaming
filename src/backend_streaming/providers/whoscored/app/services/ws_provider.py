@@ -9,6 +9,7 @@ from typing import List, Dict
 from datetime import datetime, timedelta
 from backend_streaming.providers.whoscored.domain.ws import setup_whoscored
 from apscheduler.schedulers.background import BackgroundScheduler
+from backend_streaming.providers.whoscored.domain.batch_schedule import BatchSchedule
 from backend_streaming.providers.whoscored.infra.logs.logger import setup_provider_logger
 
     
@@ -69,7 +70,8 @@ class WhoScoredProvider:
         if debug: 
             self.logger = setup_provider_logger(file_name="provider_debug")
             la_tz = pytz.timezone('America/Los_Angeles')
-            start_time = datetime.now(pytz.UTC).astimezone(la_tz) + timedelta(seconds=10)
+            start_time = datetime.now(pytz.UTC).astimezone(la_tz) + timedelta(seconds=30)
+            force_cache = True
         
         if not self.scheduler.running:
             self.scheduler.start()
@@ -79,7 +81,7 @@ class WhoScoredProvider:
             schedule = scraper.read_schedule(force_cache=force_cache)
             batch = self._filter_schedule(schedule, batch_start, batch_end)
             if debug:
-                batch = batch[:5]
+                batch = batch[:3]
             
             for _, row in batch.iterrows():
                 game_id = row['game_id']
@@ -95,8 +97,10 @@ class WhoScoredProvider:
                     id=f"game_{game_id}",
                     name=f"Game {game_id}"
                 )
-            
+            # After scheduling games, save the batch end date            
+            # NOTE: this is for monitoring purposes
             self.logger.info(f"Scheduled {len(batch)} games")
+            BatchSchedule(batch_end=batch_end).save()
             
         except Exception as e:
             self.logger.error(f"Batch scheduling failed: {e}", exc_info=True)

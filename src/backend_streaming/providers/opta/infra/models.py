@@ -1,5 +1,5 @@
 # Directory: src/backend_streaming/providers/opta/infra/models.py
-from sqlalchemy import Column, String, Integer, ForeignKey, DateTime, JSON, Float, BigInteger
+from sqlalchemy import Column, String, Integer, ForeignKey, DateTime, JSON, Float, BigInteger, UniqueConstraint
 from sqlalchemy.orm import relationship, class_mapper
 from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime, date
@@ -83,7 +83,13 @@ class MatchProjectionModel(Base):
     __tablename__ = 'match_projection'
     
     match_id = Column(String, nullable=False, index=True)
-    event_id = Column(BigInteger, nullable=False, index=True, primary_key=True)  # feed_event_id
+    event_id = Column(
+        BigInteger, 
+        nullable=False, 
+        index=True, 
+        primary_key=True,
+        unique=True,  # Add explicit unique constraint
+    )
     local_event_id = Column(Integer, nullable=True)
     type_id = Column(Integer, nullable=True)
     period_id = Column(Integer, nullable=True)
@@ -107,6 +113,10 @@ class MatchProjectionModel(Base):
     
     time_stamp = Column(String, nullable=True)
     last_modified = Column(String, nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint('event_id', name='uq_match_projection_event_id'),
+    )
 
     def deserialize(self, row: dict) -> 'MatchProjectionModel':
         """Deserialize a row into a MatchProjectionModel instance."""

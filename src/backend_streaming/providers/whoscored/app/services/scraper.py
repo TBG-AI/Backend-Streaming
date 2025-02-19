@@ -63,7 +63,9 @@ class SingleGameScraper:
         )
         # NOTE: flagging so we can rerun with the ManualGameScraper
         if not events:
-            self.provider_logger.warning(f"No events found for game {self.mapping_repo.get_mapping(MATCH_NAMES_TYPE, ws_game_id)}")
+            self.provider_logger.warning(
+                f"No events found for game {self.mapping_repo.get_mapping(MATCH_NAMES_TYPE, ws_game_id)}. ID: {ws_game_id}"
+            )
             return []
             
         return self.save_projections(events[ws_game_id])
@@ -94,7 +96,7 @@ class SingleGameScraper:
             
         return projections
         
-    def _convert_to_projection(self, event: dict) -> MatchProjectionModel:
+    def _convert_to_projection(self, event: dict) -> dict:
         transformed_qualifiers = self._transform_qualifiers(event.get('qualifiers', {}))
         match_id, team_id, player_id = self._get_mappings(event)
         
@@ -116,8 +118,8 @@ class SingleGameScraper:
             'time_stamp': None,
             'last_modified': None
         }
-        
-        return MatchProjectionModel().deserialize(projection)
+        return projection    
+        # return MatchProjectionModel().deserialize(projection)
     
     def _get_mappings(self, event: dict) -> Tuple[str, str, Optional[str]]:
         """
@@ -239,7 +241,8 @@ class ManualGameScraper(SingleGameScraper):
             raise ValueError(f"Invalid JSON format: {e}")
         
 if __name__ == "__main__":
-    for game_id in ["1821421", "1821424"]:
+    games_unable_to_scrape = ["1821421", "1821424"]
+    for game_id in games_unable_to_scrape:
         scraper = ManualGameScraper(game_id)
         scraper.fetch_events()
 

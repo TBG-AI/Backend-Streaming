@@ -10,9 +10,8 @@ from backend_streaming.providers.opta.infra.models import MatchProjectionModel
 # TODO: implement better logging here!
 import logging
 logger = logging.getLogger(__name__)
-RABBITMQ_URL = os.getenv('RABBITMQ_URL')
-QUEUE_NAME = os.getenv('QUEUE_NAME')
 
+QUEUE_NAME = 'game_events'
 
 class SingleGameStreamer:
     
@@ -22,7 +21,7 @@ class SingleGameStreamer:
     def __init__(
         self, 
         game_id: str, 
-        url: str = RABBITMQ_URL,
+        url: str = os.getenv('RABBITMQ_URL'),
         queue_name: str = QUEUE_NAME
     ):
         self.game_id = game_id
