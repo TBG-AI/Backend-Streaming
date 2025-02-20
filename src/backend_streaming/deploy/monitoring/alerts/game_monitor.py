@@ -1,32 +1,34 @@
 #!/usr/bin/env python3
 from pathlib import Path
 import time
-from backend_streaming.deploy.logs.log_processor import GameLogProcessor
+from backend_streaming.deploy.logs.log_processor import LogProcessor
 from backend_streaming.deploy.monitoring.alerts.email_config import send_alert
 
 class GameMonitor:
     def __init__(self):
-        self.processor = GameLogProcessor(
-            Path(__file__).parents[3] / "providers" / "whoscored"
-        )
+        self.processor = LogProcessor()
 
-    def check_and_alert(self):
-        """Check for issues and send alerts if needed"""
-        issues = self.processor.get_issues()
-        print(f"Issues: {issues}")
+    def check_logs(self):
+        """
+        Check for issues and send alerts if needed
+        NOTE: choosing not to remove the warnings so we don't miss it.
+        """
+        game_warnings = self.processor.get_warnings()
         
-        if issues.failed_game_ids or issues.games_missing_players:
-            self.alert(issues)
-
-    def alert(self, issues):
-        content = (
-            f"***** STREAMING SERVICE ALERT *****\n"
-            f"Fetch Failed Games: {', '.join(issues.failed_game_ids) or 'None'}\n"
-            f"Stream Failed Games: {', '.join(issues.stream_failed_games) or 'None'}\n"
-            f"Games with Missing Players: {', '.join(issues.games_missing_players) or 'None'}\n"
-            f"Missing Player IDs: {', '.join(issues.missing_player_ids) or 'None'}\n\n"
-        )
-        send_alert(content)
+        # Send separate alert for each game's warnings
+        for game in game_warnings:
+            content = (
+                f"***** WARNINGS for game {game.game_id} *****\n"
+            )
+            # Add each warning
+            for warning in game.warnings:
+                content += f"• {warning}\n"
+            
+            # Send alert with game-specific subject
+            send_alert(
+                content=content,
+                subject=f"Game {game.game_id} Warnings"
+            )
 
 def main():
     monitor = GameMonitor()

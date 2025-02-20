@@ -41,7 +41,6 @@ class SingleGameScraper:
         
         self.mapping_repo = WhoScoredToOptaMappings.create(FileMappingRepository(MAPPINGS_DIR))
         self.logger = setup_game_logger(self.game_id)
-        self.provider_logger = setup_provider_logger()
         self.proj_repo = MatchProjectionRepository(session_factory=get_session, logger=self.logger)
         
     def fetch_events(self) -> List[MatchProjectionModel]:
@@ -63,9 +62,7 @@ class SingleGameScraper:
         )
         # NOTE: flagging so we can rerun with the ManualGameScraper
         if not events:
-            self.provider_logger.warning(
-                f"No events found for game {self.mapping_repo.get_mapping(MATCH_NAMES_TYPE, ws_game_id)}. ID: {ws_game_id}"
-            )
+            self.logger.warning(f"No events found for game_id: {ws_game_id}. Match_name: {self.mapping_repo.get_mapping(MATCH_NAMES_TYPE, ws_game_id)}")
             return []
             
         return self.save_projections(events[ws_game_id])
@@ -81,11 +78,7 @@ class SingleGameScraper:
                 projections.append(projection)
             except ValueError as e:
                 # Log the missing player mapping
-                self.logger.warning(
-                    f"Undetected player. Skipping event:\n"
-                    f"  Event ID: {event['id']}\n"
-                    f"  Player ID (WS): {event.get('playerId')}\n"
-                )
+                self.logger.warning(f"Undetected player {event.get('playerId')} for event {event['id']}")
                 continue
         try:
             if projections:

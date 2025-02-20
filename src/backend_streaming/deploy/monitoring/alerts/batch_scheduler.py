@@ -10,19 +10,27 @@ class BatchScheduleMonitor:
         self.logger = logging.getLogger('batch_monitor')
 
     def check_batch_schedule(self):
-        """Check if batch_end is approaching"""
+        """Check batch schedule status"""
         current_batch = BatchSchedule.get_current()
-        print(f"Current batch: {current_batch}")
+        subject = f"BATCH ALERTS"
+        
+
         if not current_batch:
-            self.alert("No active batch schedule found!")
+            send_alert(
+                subject=subject,
+                content="No active batch schedule found!"
+            )
             return
 
-        # all scheduling is done in UTC time
-        if current_batch.batch_end < datetime.now(pytz.UTC):
-            self.alert(
-                f"Batch Finished at {current_batch.batch_end}!\n"
-                f"Action Required: Run schedule_batch.sh"
+        # Check if this is a new batch that we haven't notified about
+        if not current_batch.notified:
+            send_alert(
+                subject=subject,
+                content=f"New Batch Scheduled\n"
+                f"Start Date: {current_batch.batch_start.strftime('%Y-%m-%d')}\n"
+                f"End Date: {current_batch.batch_end.strftime('%Y-%m-%d')}\n"
+                f"Days Window: {(current_batch.batch_end - current_batch.batch_start).days}"
             )
-
-    def alert(self, message: str):
-        send_alert(message)
+            # Mark as notified and save
+            current_batch.notified = True
+            current_batch.save()

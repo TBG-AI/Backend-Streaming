@@ -51,10 +51,7 @@ class MatchProjectionRepository:
             for projection in projections:
                 if projection['event_id'] in seen_events:
                     # Log duplicate with details for investigation
-                    self.logger.warning(
-                        f"Duplicate event detected:\n"
-                        f"  Event ID: {projection['event_id']}\n"
-                    )
+                    self.logger.warning(f"Duplicate event for event id: {projection['event_id']}")
                     continue
                 
                 seen_events[projection['event_id']] = projection

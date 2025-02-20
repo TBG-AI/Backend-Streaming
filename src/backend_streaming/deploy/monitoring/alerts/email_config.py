@@ -5,12 +5,12 @@ from typing import List
 
 RECIPIENT_EMAIL = "sothebeautifulgame@gmail.com"
 
-def send_alert(content: str) -> None:
+def send_alert(subject: str, content: str) -> None:
     """Send alert email with standardized format"""
     msg = EmailMessage()
     msg.set_content(content)
     
-    msg['Subject'] = "DETECTED ISSUE"
+    msg['Subject'] = subject
     msg['From'] = os.getenv('EMAIL_FROM')
     msg['To'] = RECIPIENT_EMAIL
 

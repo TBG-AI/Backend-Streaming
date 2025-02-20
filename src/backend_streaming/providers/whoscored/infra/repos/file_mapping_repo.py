@@ -25,9 +25,7 @@ class FileMappingRepository(MappingRepository):
                 return json.load(f)
                 
         except FileNotFoundError as e:
-            self.logger.warning(
-                f"Mapping file not found: {e.filename}. Creating new."
-            )
+            self.logger.warning(f"Mapping file not found: {e.filename}. Creating new.")
             return {}
             
     def save(self, mapping_type: str, data: Dict[str, str]) -> None:

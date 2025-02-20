@@ -5,7 +5,7 @@ from backend_streaming.deploy.monitoring.alerts.game_monitor import GameMonitor
 from backend_streaming.deploy.monitoring.alerts.batch_scheduler import BatchScheduleMonitor
 
 # TODO (PRODUCTION): fill this up properly
-CHECK_EVERY_SECONDS = 3600
+CHECK_EVERY_SECONDS = 60 # 1 minute
 
 def main():
     # Initialize monitors (no email params needed)
@@ -15,7 +15,7 @@ def main():
     while True:
         # Check both types of issues
         batch_monitor.check_batch_schedule()
-        game_monitor.check_and_alert()
+        game_monitor.check_logs()
         print(f"Checked both monitors. Sleeping for {CHECK_EVERY_SECONDS} seconds...")
         time.sleep(CHECK_EVERY_SECONDS)  # Check every hour
 
