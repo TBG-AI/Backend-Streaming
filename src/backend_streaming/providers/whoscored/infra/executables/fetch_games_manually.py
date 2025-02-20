@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 from typing import List
-from backend_streaming.providers.whoscored.app.services.scraper import ManualGameScraper
+from backend_streaming.providers.whoscored.app.services.scraper import SingleGameScraper
 from backend_streaming.providers.whoscored.app.services.run_scraper import process_game
 
 def fetch_games(game_ids: List[str]) -> None:
@@ -9,7 +9,7 @@ def fetch_games(game_ids: List[str]) -> None:
     for game_id in game_ids:
         print(f"\nProcessing game {game_id}...")
         try:
-            scraper = ManualGameScraper(game_id)
+            scraper = SingleGameScraper(game_id)
             process_game(game_id, scraper)
         except Exception as e:
             raise e

@@ -1,18 +1,16 @@
 import sys
-import time
 import asyncio
 import logging
 import json
-from typing import List, Optional
+from typing import List
 from datetime import datetime
 from backend_streaming.streamer.streamer import SingleGameStreamer
-from backend_streaming.providers.whoscored.domain.ws import setup_whoscored
 from backend_streaming.providers.whoscored.app.services.scraper import SingleGameScraper
 from backend_streaming.providers.whoscored.infra.logs.logger import setup_game_logger
-from backend_streaming.providers.whoscored.infra.config import POLL_INTERVAL, WS_TO_OPTA_MATCH_MAPPING_PATH
+from backend_streaming.providers.whoscored.infra.config import WS_TO_OPTA_MATCH_MAPPING_PATH
 
 
-def process_game(game_id: str, scraper: Optional[SingleGameScraper] = None):
+def process_game(game_id: str, scraper: SingleGameScraper):
     """
     Process a single game, continuously fetching events until game completion
     or maximum duration reached.
@@ -36,9 +34,6 @@ def process_game(game_id: str, scraper: Optional[SingleGameScraper] = None):
 
     try:
         logger.info(f"Starting game processor at {start_time}")
-        if scraper is None:
-            scraper = SingleGameScraper(setup_whoscored(game_id=game_id))
-
         is_eog = False
         while not is_eog:
             fetch_stats['total_fetches'] += 1
@@ -66,8 +61,6 @@ def process_game(game_id: str, scraper: Optional[SingleGameScraper] = None):
                     asyncio.run(stream_events(streamer, events, logger, is_eog=is_eog))
             except Exception as fetch_error:
                 logger.error(f"Error during fetch: {fetch_error}", exc_info=True)
-               
-            # time.sleep(POLL_INTERVAL)  
         
         # final send through streamer to dictate end of game. 
         logger.info(f"Game processor completed. Final stats: {fetch_stats}")
