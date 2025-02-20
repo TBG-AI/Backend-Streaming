@@ -3,17 +3,10 @@ from typing import List, Dict, Tuple, Optional
 
 from backend_streaming.providers.opta.infra.repo.match_projection import MatchProjectionRepository
 from backend_streaming.providers.opta.infra.db import get_session
-from backend_streaming.providers.whoscored.infra.logs.logger import setup_game_logger
+from backend_streaming.providers.whoscored.infra.config.logger import setup_game_logger
 from backend_streaming.providers.whoscored.domain.mappings import WhoScoredToOptaMappings
 from backend_streaming.providers.whoscored.infra.repos.file_mapping_repo import FileMappingRepository
-from backend_streaming.providers.whoscored.infra.config import (
-    PLAYER_MAPPING_TYPE, 
-    TEAM_MAPPING_TYPE, 
-    MATCH_MAPPING_TYPE, 
-    RAW_PAGESOURCES_DIR, 
-    GAME_SOURCES_DIR, 
-    MAPPINGS_DIR,
-)
+from backend_streaming.providers.whoscored.infra.config.config import paths, mappings
 
 # TODO: The mapping functionality is unnecessarily complex...
 
@@ -31,7 +24,7 @@ class SingleGameScraper:
         """
         self.game_id = game_id
         self.logger = setup_game_logger(self.game_id)
-        self.mapping_repo = WhoScoredToOptaMappings.create(FileMappingRepository(MAPPINGS_DIR))
+        self.mapping_repo = WhoScoredToOptaMappings.create(FileMappingRepository(paths.mappings_dir))
         self.proj_repo = MatchProjectionRepository(session_factory=get_session, logger=self.logger)
         
     def fetch_events(self) -> dict:
@@ -44,7 +37,7 @@ class SingleGameScraper:
             4. Convert to projections and save
         """
         # 1. Read raw pagesource
-        raw_file = RAW_PAGESOURCES_DIR / f"{self.game_id}.txt"
+        raw_file = paths.raw_pagesources_dir / f"{self.game_id}.txt"
         if not raw_file.exists():
             raise FileNotFoundError(f"Raw pagesource not found for game {self.game_id}")
             
@@ -55,7 +48,7 @@ class SingleGameScraper:
         json_data = self._format_pagesource(raw_content)
         
         # TODO: move properly to the cache I'm creating!
-        json_file = GAME_SOURCES_DIR / f"{self.game_id}.json"
+        json_file = paths.game_sources_dir / f"{self.game_id}.json"
         self.logger.info(f"Saving formatted JSON for game {self.game_id}")
         with open(json_file, 'w') as f:
             json.dump(json_data, f, indent=2)
@@ -121,11 +114,11 @@ class SingleGameScraper:
         Team and match mappings must exist, player mappings might not..
         """
         # Team and match mappings must exist    
-        match_id = self.mapping_repo.get_mapping(MATCH_MAPPING_TYPE, self.game_id)
+        match_id = self.mapping_repo.get_mapping(mappings.MATCH, self.game_id)
         assert match_id is not None, f"Match mapping not found for {self.game_id}"
 
         ws_team_id = str(event.get('teamId')) if event.get('teamId') else None
-        team_id = self.mapping_repo.get_mapping(TEAM_MAPPING_TYPE, ws_team_id)
+        team_id = self.mapping_repo.get_mapping(mappings.TEAM, ws_team_id)
         assert team_id is not None, f"Team mapping not found for {ws_team_id}"
         
         # Player mapping might not exist
@@ -133,7 +126,7 @@ class SingleGameScraper:
         player_id = None
         if ws_player_id:
             # Let ValueError propagate up for handling in save_projections
-            player_id = self.mapping_repo.get_mapping(PLAYER_MAPPING_TYPE, ws_player_id)
+            player_id = self.mapping_repo.get_mapping(mappings.PLAYER, ws_player_id)
         
         return match_id, team_id, player_id
     

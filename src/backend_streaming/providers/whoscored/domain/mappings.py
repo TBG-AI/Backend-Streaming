@@ -1,10 +1,7 @@
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Dict, Optional, Tuple
 from abc import ABC, abstractmethod
-import string
-import random
-from backend_streaming.providers.whoscored.infra.config import PLAYER_MAPPING_TYPE, TEAM_MAPPING_TYPE, MATCH_MAPPING_TYPE, MATCH_NAMES_TYPE
+from typing import Dict, Optional
+from backend_streaming.providers.whoscored.infra.config.config import mappings
 
 class MappingRepository(ABC):
     """Abstract base class for WhoScored-to-Opta ID mapping storage"""
@@ -46,10 +43,10 @@ class WhoScoredToOptaMappings:
     def create(cls, repository: MappingRepository) -> 'WhoScoredToOptaMappings':
         """Factory method to create mappings instance"""
         return cls(
-            player_ids=repository.load(PLAYER_MAPPING_TYPE),
-            team_ids=repository.load(TEAM_MAPPING_TYPE),
-            ws_to_opta_match_ids=repository.load(MATCH_MAPPING_TYPE),
-            ws_match_ids=repository.load(MATCH_NAMES_TYPE),
+            player_ids=repository.load(mappings.PLAYER),
+            team_ids=repository.load(mappings.TEAM),
+            ws_to_opta_match_ids=repository.load(mappings.MATCH),
+            ws_match_ids=repository.load(mappings.MATCH_NAMES),
             repository=repository
         )
 
@@ -70,7 +67,6 @@ class WhoScoredToOptaMappings:
             raise ValueError(f"No mapping found for {ws_id} in {mapping_type}")
             
         return mappings[ws_id]
-
     def insert_player_id(self, player_id: str, team_id: str) -> None:
         """
         Insert new player ID and create placeholder entry in database.

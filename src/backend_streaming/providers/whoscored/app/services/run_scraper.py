@@ -6,8 +6,8 @@ from typing import List
 from datetime import datetime
 from backend_streaming.streamer.streamer import SingleGameStreamer
 from backend_streaming.providers.whoscored.app.services.scraper import SingleGameScraper
-from backend_streaming.providers.whoscored.infra.logs.logger import setup_game_logger
-from backend_streaming.providers.whoscored.infra.config import WS_TO_OPTA_MATCH_MAPPING_PATH
+from backend_streaming.providers.whoscored.infra.config.logger import setup_game_logger
+from backend_streaming.providers.whoscored.infra.config.config import paths
 
 
 def process_game(game_id: str, scraper: SingleGameScraper):
@@ -17,7 +17,7 @@ def process_game(game_id: str, scraper: SingleGameScraper):
 
     # NOTE: scraper is only passed in when running manually
     """
-    with open(WS_TO_OPTA_MATCH_MAPPING_PATH, 'r') as f:
+    with open(paths.ws_to_opta_match_mapping_path, 'r') as f:
         ws_to_opta_match_mapping = json.load(f)
 
     # setup
