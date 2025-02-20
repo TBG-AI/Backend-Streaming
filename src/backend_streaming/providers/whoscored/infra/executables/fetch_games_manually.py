@@ -2,8 +2,7 @@
 import argparse
 from typing import List
 from backend_streaming.providers.whoscored.app.services.scraper import ManualGameScraper
-from backend_streaming.deploy.logs.log_processor import GameLogProcessor
-from pathlib import Path
+from backend_streaming.providers.whoscored.app.services.run_scraper import process_game
 
 def fetch_games(game_ids: List[str]) -> None:
     """Fetch events for specified game IDs"""
@@ -11,10 +10,9 @@ def fetch_games(game_ids: List[str]) -> None:
         print(f"\nProcessing game {game_id}...")
         try:
             scraper = ManualGameScraper(game_id)
-            scraper.fetch_events()
-            print(f"Successfully processed game {game_id}")
+            process_game(game_id, scraper)
         except Exception as e:
-            print(f"Failed to process game {game_id}: {str(e)}")
+            raise e
 
 def main():
     parser = argparse.ArgumentParser(description='Manually fetch WhoScored games')
