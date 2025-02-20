@@ -18,7 +18,7 @@ def setup_game_logger(game_id: str):
     
     # File Handler with mode='w' to overwrite
     log_file = paths.game_logs_dir / f"{game_id}.log"
-    file_handler = logging.FileHandler(str(log_file))
+    file_handler = logging.FileHandler(str(log_file), mode='w')
     file_handler.setFormatter(formatter)
     
     # Add only the file handler
