@@ -85,10 +85,8 @@ class MatchProjectionModel(Base):
     match_id = Column(String, nullable=False, index=True)
     event_id = Column(
         BigInteger, 
-        nullable=False, 
-        index=True, 
-        primary_key=True,
-        unique=True,  # Add explicit unique constraint
+        nullable=False,
+        primary_key=True,  # This automatically adds unique constraint
     )
     local_event_id = Column(Integer, nullable=True)
     type_id = Column(Integer, nullable=True)
@@ -113,10 +111,6 @@ class MatchProjectionModel(Base):
     
     time_stamp = Column(String, nullable=True)
     last_modified = Column(String, nullable=True)
-
-    __table_args__ = (
-        UniqueConstraint('event_id', name='uq_match_projection_event_id'),
-    )
 
     def deserialize(self, row: dict) -> 'MatchProjectionModel':
         """Deserialize a row into a MatchProjectionModel instance."""

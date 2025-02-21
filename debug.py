@@ -7,6 +7,7 @@ import string
 from backend_streaming.providers.opta.infra.models import PlayerModel
 from backend_streaming.providers.opta.infra.db import get_session
 from datetime import datetime
+import argparse
 
 
 def check_game_data(loader, game_id):
@@ -159,14 +160,124 @@ def insert_unmapped_players(unmapped_players):
         session.close()
 
 
+def check_and_create_missing_players(players_df):
+    """Check if mapped players exist in database and create if missing"""
+    # Load mappings
+    with open(paths.mappings_dir / "player_ids.json") as f:
+        player_mappings = json.load(f)
+    
+    with open(paths.mappings_dir / "team_ids.json") as f:
+        team_mappings = json.load(f)
+    
+    # Get all Opta IDs from mappings
+    opta_ids = set(player_mappings.values())
+    
+    session = get_session()
+    try:
+        # Check which IDs exist in database
+        existing_ids = set(id_[0] for id_ in session.query(PlayerModel.player_id).all())
+        missing_ids = opta_ids - existing_ids
+        
+        if not missing_ids:
+            print("\nAll mapped players exist in database")
+            return
+            
+        print(f"\nFound {len(missing_ids)} mapped players missing from database")
+        
+        # Create players for missing IDs
+        created_count = 0
+        for opta_id in missing_ids:
+            # Find WhoScored ID for this Opta ID
+            ws_id = next(ws_id for ws_id, opt_id in player_mappings.items() if opt_id == opta_id)
+            
+            # Find player data in DataFrame
+            player_data = players_df[players_df['player_id'].astype(str) == ws_id]
+            if player_data.empty:
+                print(f"Warning: No data found for player with WhoScored ID {ws_id}")
+                continue
+                
+            player = player_data.iloc[0]
+            
+            # Get team's Opta ID
+            ws_team_id = str(player['team_id'])
+            opta_team_id = team_mappings.get(ws_team_id)
+            
+            if not opta_team_id:
+                print(f"Warning: No team mapping found for WhoScored team ID {ws_team_id}")
+                continue
+            
+            # Parse player name
+            name_parts = player['player_name'].split(' ')
+            first_name = name_parts[0]
+            last_name = ' '.join(name_parts[1:]) if len(name_parts) > 1 else "PLACEHOLDER"
+            
+            # Convert numpy.int64 to Python int
+            jersey_number = int(player['jersey_number']) if pd.notna(player['jersey_number']) else None
+            
+            # Create player model
+            new_player = PlayerModel(
+                player_id=opta_id,
+                first_name=first_name,
+                last_name=last_name,
+                short_first_name=first_name,
+                short_last_name=last_name,
+                gender="PLACEHOLDER",
+                match_name=player['player_name'],
+                nationality="PLACEHOLDER",
+                nationality_id="PLACEHOLDER",
+                position=player['starting_position'],
+                type="PLACEHOLDER",
+                date_of_birth="PLACEHOLDER",
+                place_of_birth="PLACEHOLDER",
+                country_of_birth="PLACEHOLDER",
+                country_of_birth_id="PLACEHOLDER",
+                height=0,
+                weight=0,
+                foot="PLACEHOLDER",
+                shirt_number=jersey_number,  # Use converted number
+                status="active",
+                active="true",
+                team_id=opta_team_id,
+                team_name="PLACEHOLDER",
+                last_updated=datetime.utcnow().isoformat()
+            )
+            
+            session.add(new_player)
+            created_count += 1
+            print(f"Created player: {player['player_name']} (WS ID: {ws_id} -> Opta ID: {opta_id})")
+        
+        session.commit()
+        print(f"\nSuccessfully created {created_count} missing players")
+        
+    except Exception as e:
+        session.rollback()
+        print(f"Error creating players: {e}")
+        raise
+    finally:
+        session.close()
+
+
 def main():
+    parser = argparse.ArgumentParser(description='Player data management tools')
+    parser.add_argument('--mode', type=str, choices=['update', 'check'],
+                       help='Mode to run: "update" to fetch and update mappings, "check" to verify existing mappings')
+    
+    args = parser.parse_args()
+
     players_df = get_players_data()
     if not players_df.empty:
-        unmapped_players = get_unmapped_players(players_df)
-        print(f"\nFound {len(unmapped_players)} unmapped players:")
-        insert_unmapped_players(unmapped_players)
+        if args.mode == 'update':
+            # Original functionality
+            unmapped_players = get_unmapped_players(players_df)
+            print(f"\nFound {len(unmapped_players)} unmapped players:")
+            insert_unmapped_players(unmapped_players)
+        elif args.mode == 'check':
+            # New functionality
+            check_and_create_missing_players(players_df)
+        else:
+            print("\nPlease specify a mode: --mode update|check")
     else:
-        print("\nNo players to check for mapping")
+        print("\nNo players to process")
 
 
 if __name__ == "__main__":

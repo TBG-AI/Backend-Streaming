@@ -91,7 +91,7 @@ class SingleGameScraper:
             'match_id': match_id,
             'player_id': player_id,
             'contestant_id': team_id,
-            'event_id': event['id'],
+            'event_id': int(event['id']),
             'local_event_id': event.get('eventId'),
             'type_id': event.get('type', {}).get('value'),
             'period_id': event.get('period', {}).get('value'),

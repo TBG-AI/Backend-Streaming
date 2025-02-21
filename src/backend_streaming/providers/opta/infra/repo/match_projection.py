@@ -43,14 +43,13 @@ class MatchProjectionRepository:
 
     def save_match_state(self, projections: List[dict]):    
         session = self.session_factory()
-        try:
+        try: 
             # Track seen event IDs and build list of unique models
             seen_events = {}
             unique_models = []
             
             for projection in projections:
                 if projection['event_id'] in seen_events:
-                    # Log duplicate with details for investigation
                     self.logger.warning(f"Duplicate event for event id: {projection['event_id']}")
                     continue
                 
@@ -58,13 +57,12 @@ class MatchProjectionRepository:
                 unique_models.append(projection)
             
             self.logger.info(f"upserting {len(unique_models)} projections") 
-            # Bulk upsert using PostgreSQL's INSERT ... ON CONFLICT
+            
             stmt = insert(MatchProjectionModel).values(unique_models)
             stmt = stmt.on_conflict_do_update(
-                constraint='uq_match_projection_event_id',  # Specify the constraint name
+                index_elements=['event_id'],  # Use primary key instead of named constraint
                 set_=stmt.excluded
             )
-            
             session.execute(stmt)
             session.commit()
             

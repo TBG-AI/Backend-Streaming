@@ -49,3 +49,6 @@ htmlcov/
 .tox/
 shared/
 
+# cache
+src/backend_streaming/providers/whoscored/infra/data/WhoScored/
+
