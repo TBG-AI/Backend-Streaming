@@ -47,6 +47,7 @@ def process_game(game_id: str, scraper: SingleGameScraper):
                 # get the events
                 events = scraper.fetch_events()
                 fetch_stats['last_fetch_time'] = current_time
+
                 # log useful stats
                 if events:
                     fetch_stats['successful_fetches'] += 1

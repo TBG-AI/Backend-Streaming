@@ -7,6 +7,24 @@ class PathConfig:
     """Configuration for all project paths"""
     project_root: Path
     
+    def ensure_directories_exist(self) -> None:
+        """Create all required directories if they don't exist."""
+        directories = [
+            self.src_dir,
+            self.providers_dir,
+            self.whoscored_dir,
+            self.mappings_dir,
+            self.manual_scraping_dir,
+            self.logs_dir,
+            self.raw_pagesources_dir,
+            self.lineups_dir,
+            self.parsed_page_sources_dir,
+            self.game_logs_dir,
+        ]
+        
+        for directory in directories:
+            directory.mkdir(parents=True, exist_ok=True)
+    
     @property
     def src_dir(self) -> Path:
         return self.project_root / "src" / "backend_streaming"
@@ -33,11 +51,15 @@ class PathConfig:
     
     @property
     def raw_pagesources_dir(self) -> Path:
-        return self.manual_scraping_dir / "raw"
+        return self.manual_scraping_dir / "raw_page_sources"
     
     @property
-    def game_sources_dir(self) -> Path:
-        return self.manual_scraping_dir / "parsed"
+    def lineups_dir(self) -> Path:
+        return self.manual_scraping_dir / "lineups"
+    
+    @property
+    def parsed_page_sources_dir(self) -> Path:
+        return self.manual_scraping_dir / "parsed_page_sources"
     
     @property
     def game_logs_dir(self) -> Path:
@@ -46,6 +68,16 @@ class PathConfig:
     @property
     def ws_to_opta_match_mapping_path(self) -> Path:
         return self.mappings_dir / "ws_to_opta_match_ids.json"
+    
+    @property
+    def team_mapping_path(self) -> Path:
+        return self.mappings_dir / "team_ids.json"
+    
+    @property
+    def player_mapping_path(self) -> Path:
+        return self.mappings_dir / "player_ids.json"
+    
+
 
 @dataclass(frozen=True)
 class MappingConfig:
@@ -71,5 +103,6 @@ def find_project_root() -> Path:
 
 # Create configuration instances
 paths = PathConfig(project_root=find_project_root())
+paths.ensure_directories_exist()
 mappings = MappingConfig()
 timing = TimeConfig()

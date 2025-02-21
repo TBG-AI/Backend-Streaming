@@ -33,7 +33,7 @@ class SingleGameScraper:
         Steps:
             1. Read raw pagesource
             2. Convert to JSON and save
-            3. Extract events
+            3. Extract events and lineup data
             4. Convert to projections and save
         """
         # 1. Read raw pagesource
@@ -47,18 +47,26 @@ class SingleGameScraper:
         # 2. Convert to JSON 
         json_data = self._format_pagesource(raw_content)
         
-        # TODO: move properly to the cache I'm creating!
-        json_file = paths.game_sources_dir / f"{self.game_id}.json"
-        self.logger.info(f"Saving formatted JSON for game {self.game_id}")
+        # NOTE: There is a LOT more information that you can potentially use from this single json source. 
+        # Properly investigate this. For now, I'm just using the events and lineup info.
+        json_file = paths.parsed_page_sources_dir / f"{self.game_id}.json"
+        self.logger.info(f"Saving formatted JSON page source for game {self.game_id}")
         with open(json_file, 'w') as f:
             json.dump(json_data, f, indent=2)
         
         # 3. Extract events
         if "events" not in json_data:
             raise ValueError(f"No events found in game {self.game_id}")
-        
         events = json_data["events"]
         self.logger.info(f"Extracted {len(events)} events from game {self.game_id}")
+
+        # 4. Extract lineup data
+        if "home" not in json_data or "away" not in json_data:
+            raise ValueError(f"No lineup data found in game {self.game_id}")
+        home_lineup, away_lineup = self._format_lineup_data(json_data, self.game_id)
+        with open(paths.lineups_dir / f"{self.game_id}.json", 'w') as f:
+            json.dump({"home": home_lineup, "away": away_lineup}, f, indent=2)
+
         return self.save_projections(events)
         
     def save_projections(self, events: List[dict]):
@@ -177,5 +185,40 @@ class SingleGameScraper:
             
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON format: {e}")
+        
+    def _format_lineup_data(self, json_data: dict, game_id: int) -> tuple[dict, dict]:
+        """
+        Convert both teams' formation data into the required lineup info format.
+        Takes the first formation entry (initial lineup) for each team.
+        
+        Returns:
+            tuple[dict, dict]: (home_lineup, away_lineup)
+        """
+        def _format_team(team_data: dict) -> dict:
+            formation = team_data['formations'][0]
+            return {
+                "data_type": "whoscored",
+                "game_id": game_id,
+                "lineup_info": {
+                    "team_id": team_data['teamId'],
+                    "formation_id": formation['formationId'],
+                    "formation_name": formation['formationName'],
+                    "formation_slots": formation['formationSlots'],
+                    "player_ids": formation['playerIds'],
+                    "formation_positions": [
+                        {
+                            "vertical": pos["vertical"],
+                            "horizontal": pos["horizontal"]
+                        }
+                        for pos in formation['formationPositions']
+                    ],
+                    "captain_id": formation['captainPlayerId']
+                }
+            }
+        
+        home_lineup = _format_team(json_data["home"])
+        away_lineup = _format_team(json_data["away"])
+        
+        return home_lineup, away_lineup
 
 
