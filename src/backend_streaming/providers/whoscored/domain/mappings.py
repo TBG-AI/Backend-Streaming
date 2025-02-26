@@ -63,11 +63,12 @@ class WhoScoredToOptaMappings:
 
         mappings = getattr(self, f"{mapping_type}_ids")
         if ws_id not in mappings:
-            # TODO: flag this properly 
-            raise ValueError(f"No mapping found for {ws_id} in {mapping_type}")
-            
+            return None
+            # print(f"No mapping found for {ws_id} in {mapping_type}")
+            # raise ValueError(f"No mapping found for {ws_id} in {mapping_type}")
         return mappings[ws_id]
-    def insert_player_id(self, player_id: str, team_id: str) -> None:
+    
+    def insert_player_id(self, player_id: str) -> None:
         """
         Insert new player ID and create placeholder entry in database.
         """

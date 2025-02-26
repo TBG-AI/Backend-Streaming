@@ -1,5 +1,7 @@
 import json
 from typing import List, Dict, Tuple, Optional
+import string
+import random
 
 from backend_streaming.providers.opta.infra.repo.match_projection import MatchProjectionRepository
 from backend_streaming.providers.opta.infra.db import get_session
@@ -36,7 +38,7 @@ class SingleGameScraper:
             3. Extract events and lineup data
             4. Convert to projections and save
         """
-        # 1. Read raw pagesource
+        # Read raw pagesource
         raw_file = paths.raw_pagesources_dir / f"{self.game_id}.txt"
         if not raw_file.exists():
             raise FileNotFoundError(f"Raw pagesource not found for game {self.game_id}")
@@ -44,7 +46,7 @@ class SingleGameScraper:
         self.logger.info(f"Reading raw pagesource for game {self.game_id}")
         raw_content = raw_file.read_text()
         
-        # 2. Convert to JSON 
+        # Convert to JSON 
         json_data = self._format_pagesource(raw_content)
         
         # NOTE: There is a LOT more information that you can potentially use from this single json source. 
@@ -54,15 +56,26 @@ class SingleGameScraper:
         with open(json_file, 'w') as f:
             json.dump(json_data, f, indent=2)
         
-        # 3. Extract events
+        # Extract events
         if "events" not in json_data:
             raise ValueError(f"No events found in game {self.game_id}")
         events = json_data["events"]
         self.logger.info(f"Extracted {len(events)} events from game {self.game_id}")
 
-        # 4. Extract lineup data
+        # Extract lineup data
+        # NOTE: here, we handle any new players that are not in the player mapping.
         if "home" not in json_data or "away" not in json_data:
             raise ValueError(f"No lineup data found in game {self.game_id}")
+        
+        # Extract all player IDs from both teams' formations
+        all_player_ids = []
+        for team in ["home", "away"]:
+            if "formations" in json_data[team] and json_data[team]["formations"]:
+                formation = json_data[team]["formations"][0]
+                all_player_ids.extend(formation.get("playerIds", []))
+        
+        # Update player mappings and format lineup data
+        self._update_player_mapping(all_player_ids)
         home_lineup, away_lineup = self._format_lineup_data(json_data, self.game_id)
         with open(paths.lineups_dir / f"{self.game_id}.json", 'w') as f:
             json.dump({"home": home_lineup, "away": away_lineup}, f, indent=2)
@@ -186,6 +199,38 @@ class SingleGameScraper:
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON format: {e}")
         
+    def _update_player_mapping(self, player_ids: list[int]):
+        """
+        Update player mappings for new players.
+        For each player ID that doesn't exist in the mapping,
+        generate a random Opta-like ID and add it to the mapping.
+        """
+        player_id_json_path = paths.player_mapping_path
+        
+        # Load existing mappings
+        try:
+            with open(player_id_json_path, 'r') as f:
+                player_mappings = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            player_mappings = {}
+        
+        # Check each player ID and generate mapping if needed
+        updated = False
+        for player_id in player_ids:
+            str_player_id = str(player_id)
+            if str_player_id not in player_mappings:
+                # Generate random Opta-like ID
+                random_opta_id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=random.randint(20, 25)))
+                player_mappings[str_player_id] = random_opta_id
+                updated = True
+                self.logger.info(f"     ...Generated new mapping for player {str_player_id}: {random_opta_id}")
+        
+        # Save updated mappings if any new ones were added
+        if updated:
+            with open(player_id_json_path, 'w') as f:
+                json.dump(player_mappings, f, indent=2)
+                self.logger.info(f"Updated player mappings file with {len(player_mappings)} total mappings")
+    
     def _format_lineup_data(self, json_data: dict, game_id: int) -> tuple[dict, dict]:
         """
         Convert both teams' formation data into the required lineup info format.

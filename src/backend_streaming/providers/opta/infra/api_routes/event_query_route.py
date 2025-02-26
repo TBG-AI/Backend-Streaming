@@ -54,10 +54,13 @@ async def get_events_by_game_id(game_id: str) -> List[dict]:
     """
     try:
         # Create repository with session factory
+        import os
+        logger.info(f"current db: {os.getenv('DATABASE_URL')}")
         repo = MatchProjectionRepository(get_session, logger)
         
         # Get events
         events = repo.get_match_state(game_id)
+        logger.info(f"Retrieved {len(events)} events for game {game_id}")
         if not events:
             raise HTTPException(
                 status_code=404,

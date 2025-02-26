@@ -56,8 +56,10 @@ class MatchProjectionRepository:
                 seen_events[projection['event_id']] = projection
                 unique_models.append(projection)
             
-            self.logger.info(f"upserting {len(unique_models)} projections") 
-            
+            # TODO: this is being triggered but why don't I see the inserts?
+            self.logger.info(f"upserting {len(unique_models)} projections")
+            import os
+            self.logger.info(f"db is {os.getenv('DATABASE_URL')}")
             stmt = insert(MatchProjectionModel).values(unique_models)
             stmt = stmt.on_conflict_do_update(
                 index_elements=['event_id'],  # Use primary key instead of named constraint
