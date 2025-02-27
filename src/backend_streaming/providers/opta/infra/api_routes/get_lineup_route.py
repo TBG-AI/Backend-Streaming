@@ -6,10 +6,7 @@ router = APIRouter()
 @router.get("/get_lineup/{game_id}")
 async def get_lineup(game_id: str):
     """
-    Given the game_id, query and return the lineup from the database
-    
-    Returns:
-        Dict containing home and away lineup information
+    Given the game_id, return the lineup for both teams.
     """
     try:
         get_lineup = GetLineupService(game_id)

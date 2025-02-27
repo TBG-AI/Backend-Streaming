@@ -22,7 +22,6 @@ def process_game(game_id: str, scraper: SingleGameScraper):
 
     # setup
     logger = setup_game_logger(game_id)
-    streamer = SingleGameStreamer(ws_to_opta_match_mapping[game_id])
     start_time = datetime.now()
     fetch_stats = {
         'total_fetches': 0,
@@ -34,6 +33,7 @@ def process_game(game_id: str, scraper: SingleGameScraper):
 
     try:
         logger.info(f"Starting game processor at {start_time}")
+        streamer = SingleGameStreamer(scraper.ws_to_opta_match_mapping[game_id]),
         is_eog = False
         while not is_eog:
             fetch_stats['total_fetches'] += 1
@@ -42,24 +42,40 @@ def process_game(game_id: str, scraper: SingleGameScraper):
             # TODO: implement proper condition to check for eog...
             # For now, just running once to prevent infinite loop.
             is_eog = True
-           
             try:
-                # get the events
+                # get the events and save into match_projections table
                 events = scraper.fetch_events()
-                fetch_stats['last_fetch_time'] = current_time
+                projections = scraper.save_projections(events)
+                # extract lineup data and update player mappings
+                player_mappings = scraper.update_player_mappings()
+                lineup_info = scraper.extract_lineup()
 
-                # log useful stats
-                if events:
-                    fetch_stats['successful_fetches'] += 1
-                    fetch_stats['total_events'] = len(events)
-                    fetch_stats['last_event_count'] = len(events)
-                    logger.info(
-                        f"Fetch {fetch_stats['total_fetches']}: "
-                        f"Found {len(events)} events. "
-                        f"Total successful fetches: {fetch_stats['successful_fetches']}"
+                # stream into designated queue
+                asyncio.run(
+                    stream(
+                        streamer = streamer,
+                        data = {
+                            'projections': projections,
+                            'player_mappings': player_mappings,
+                            'lineup_info': lineup_info
+                        },
+                        logger = logger, 
+                        is_eog = is_eog
                     )
-                    # stream into designated queue
-                    asyncio.run(stream_events(streamer, events, logger, is_eog=is_eog))
+                )
+                
+                # log useful stats
+                fetch_stats['total_events'] = len(events)
+                # NOTE: these logs for if we want live data. Keeping for now
+                fetch_stats['last_event_count'] = len(events)
+                fetch_stats['last_fetch_time'] = current_time
+                fetch_stats['successful_fetches'] += 1
+                logger.info(
+                    f"Fetch {fetch_stats['total_fetches']}: "
+                    f"Found {len(events)} events. "
+                    f"Total successful fetches: {fetch_stats['successful_fetches']}"
+                )
+    
             except Exception as fetch_error:
                 logger.error(f"Error during fetch: {fetch_error}", exc_info=True)
         
@@ -71,13 +87,16 @@ def process_game(game_id: str, scraper: SingleGameScraper):
         raise
 
 
-async def stream_events(
+async def stream(
     streamer: SingleGameStreamer, 
-    events: List[dict],
+    data: List[dict],
     logger: logging.Logger,
     is_eog: bool = False,
 ):
-    """Helper function to stream events asynchronously"""
+    """
+    Helper function to stream events asynchronously.
+    Accepts data fields to have it's own message type.
+    """
     try:
         message_type = streamer.STOP_MESSAGE_TYPE if is_eog else streamer.PROGRESS_MESSAGE_TYPE
         await streamer.connect()

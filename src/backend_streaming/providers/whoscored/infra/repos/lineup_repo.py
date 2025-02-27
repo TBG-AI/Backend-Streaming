@@ -10,9 +10,8 @@ class LineupRepository:
 
     def get_lineup(self) -> Dict[str, Any]:
         """
-        Get both home and away lineups for a game. Currently, just a simple load from internal json.
-        Returns:
-            Dict containing 'home' and 'away' lineup data
+        Get both home and away lineups for a game. 
+        NOTE: this is just a simple load from internal json.
         """
         try:
             with open(self.lineup_path, 'r') as f:

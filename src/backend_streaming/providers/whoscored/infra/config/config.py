@@ -78,20 +78,35 @@ class PathConfig:
         return self.mappings_dir / "player_ids.json"
     
 
-
 @dataclass(frozen=True)
-class MappingConfig:
-    """Configuration for mapping types"""
+class MappingPaths:
+    """Provides easy access to mapping file paths"""
+    _paths: PathConfig
+
+    @property
+    def players(self) -> Path:
+        return self._paths.player_mapping_path
+    
+    @property
+    def teams(self) -> Path:
+        return self._paths.team_mapping_path
+    
+    @property
+    def matches(self) -> Path:
+        return self._paths.ws_to_opta_match_mapping_path
+    
+@dataclass(frozen=True)
+class MappingTypes:
+    """Types of mappings that can be stored"""
     PLAYER = 'player'
     TEAM = 'team'
-    MATCH = 'ws_to_opta_match'
-    MATCH_NAMES = 'ws_match'
+    MATCH = 'match'
 
-@dataclass(frozen=True)
-class TimeConfig:
-    """Configuration for timing parameters"""
-    MAX_DURATION: timedelta = timedelta(hours=3)
-    POLL_INTERVAL: int = 60  # 1 minute
+# @dataclass(frozen=True)
+# class TimeConfig:
+#     """Configuration for timing parameters"""
+#     MAX_DURATION: timedelta = timedelta(hours=3)
+#     POLL_INTERVAL: int = 60  # 1 minute
 
 def find_project_root() -> Path:
     """Find the project root by looking for marker files"""
@@ -104,5 +119,6 @@ def find_project_root() -> Path:
 # Create configuration instances
 paths = PathConfig(project_root=find_project_root())
 paths.ensure_directories_exist()
-mappings = MappingConfig()
-timing = TimeConfig()
+
+mapping_paths = MappingPaths(_paths=paths)
+mapping_types = MappingTypes()
