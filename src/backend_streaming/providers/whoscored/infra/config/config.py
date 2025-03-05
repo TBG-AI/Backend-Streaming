@@ -76,31 +76,40 @@ class PathConfig:
     @property
     def player_mapping_path(self) -> Path:
         return self.mappings_dir / "player_ids.json"
-    
+ 
 
 @dataclass(frozen=True)
-class MappingPaths:
-    """Provides easy access to mapping file paths"""
-    _paths: PathConfig
+class TypeToPaths:
+    """Types of files and their paths"""
+    paths: PathConfig
 
     @property
-    def players(self) -> Path:
-        return self._paths.player_mapping_path
+    def PLAYER(self) -> Path:
+        return self.paths.player_mapping_path
     
     @property
-    def teams(self) -> Path:
-        return self._paths.team_mapping_path
+    def TEAM(self) -> Path:
+        return self.paths.team_mapping_path
     
     @property
-    def matches(self) -> Path:
-        return self._paths.ws_to_opta_match_mapping_path
+    def MATCH(self) -> Path:
+        return self.paths.ws_to_opta_match_mapping_path
+
+    @property
+    def RAW_PAGESOURCES(self) -> Path:
+        return self.paths.raw_pagesources_dir
     
-@dataclass(frozen=True)
-class MappingTypes:
-    """Types of mappings that can be stored"""
-    PLAYER = 'player'
-    TEAM = 'team'
-    MATCH = 'match'
+    @property
+    def LINEUPS(self) -> Path:
+        return self.paths.lineups_dir
+    
+    @property
+    def PARSED_PAGE_SOURCES(self) -> Path:
+        return self.paths.parsed_page_sources_dir
+    
+    @property
+    def GAME_LOGS(self) -> Path:
+        return self.paths.game_logs_dir
 
 # @dataclass(frozen=True)
 # class TimeConfig:
@@ -119,6 +128,4 @@ def find_project_root() -> Path:
 # Create configuration instances
 paths = PathConfig(project_root=find_project_root())
 paths.ensure_directories_exist()
-
-mapping_paths = MappingPaths(_paths=paths)
-mapping_types = MappingTypes()
+type_to_paths = TypeToPaths(paths=paths)

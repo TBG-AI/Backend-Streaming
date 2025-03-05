@@ -1,15 +1,17 @@
+import os
 import json
 import string
 import random
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple, Optional, Union
 from collections import defaultdict
 
-# using MatchProjectionRepository originally defined for Opta provider
-from backend_streaming.providers.opta.infra.repo.match_projection import MatchProjectionRepository
 from backend_streaming.providers.opta.infra.db import get_session
 from backend_streaming.providers.whoscored.infra.config.logger import setup_game_logger
-from backend_streaming.providers.whoscored.infra.repos.mapping_repo import MappingRepository
-from backend_streaming.providers.whoscored.infra.config.config import paths, mapping_paths, mapping_types
+from backend_streaming.providers.whoscored.infra.repos.file_repo import FileRepository
+from backend_streaming.providers.whoscored.infra.repos.scraper_repo import ScraperRepository
+# NOTE: using MatchProjectionRepository originally defined for Opta provider
+from backend_streaming.providers.opta.infra.repo.match_projection import MatchProjectionRepository
+from backend_streaming.providers.whoscored.infra.config.config import paths, type_to_paths
 
 # TODO: The mapping functionality is unnecessarily complex...
 
@@ -20,11 +22,12 @@ class SingleGameScraper:
     """    
     HOME_KEYWORD = "home"
     AWAY_KEYWORD = "away"
-    FORMATION_KEYWORD = "formation"
+    FORMATION_KEYWORD = "formations"
     PLAYER_IDS_KEYWORD = "playerIds"
     JERSEY_NUMBERS_KEYWORD = "jerseyNumbers"
     PLAYER_NAME_DICTIONARY_KEYWORD = "playerIdNameDictionary"
     TEAM_ID_KEYWORD = "teamId"
+    EVENTS_KEYWORD = "events"
     
     def __init__(self, game_id: str):
         """
@@ -36,9 +39,10 @@ class SingleGameScraper:
         self.game_id = game_id
         self.logger = setup_game_logger(self.game_id)
         self.proj_repo = MatchProjectionRepository(session_factory=get_session, logger=self.logger)
-        self.mapping_repo = MappingRepository(
-            paths=mapping_paths,
-            mapping_types=mapping_types,
+        self.scraper_repo = ScraperRepository(logger=self.logger)
+        self.file_repo = FileRepository(
+            paths=paths,
+            type_to_paths=type_to_paths,
             logger=self.logger
         )
         # init paths
@@ -51,44 +55,36 @@ class SingleGameScraper:
         """
         Initialize paths for the scraper.
         """
-        self.ws_to_opta_mapping = self.mapping_repo.load(mapping_types.MATCH)
-        self.player_mappings = self.mapping_repo.load(mapping_types.PLAYER)
-        self.team_mappings = self.mapping_repo.load(mapping_types.TEAM)
+        self.ws_to_opta_mapping = self.file_repo.load('match')
+        self.player_mappings = self.file_repo.load('player')
+        self.team_mappings = self.file_repo.load('team')
 
     def fetch_events(self) -> dict:
         """
-        Process game from raw pagesource.
-        Steps:
-            1. Read raw pagesource
-            2. Convert to JSON and save
-            3. Extract events and lineup data
-            4. Convert to projections and save
+        Process game from raw pagesource and save to JSON.
+        Will also save as match projection rows to update db and send via streamer.
         """
         # Read raw pagesource
-        raw_file = paths.raw_pagesources_dir / f"{self.game_id}.txt"
-        if not raw_file.exists():
-            raise FileNotFoundError(f"Raw pagesource not found for game {self.game_id}")
-            
-        self.logger.info(f"Reading raw pagesource for game {self.game_id}")
-        raw_content = raw_file.read_text()
-        
-        # Convert to JSON 
-        json_data = self._format_pagesource(raw_content)
-        
-        # NOTE: There is a LOT more information that you can potentially use from this single json source. 
-        # Properly investigate this. For now, I'm just using the events and lineup info.
-        json_file = paths.parsed_page_sources_dir / f"{self.game_id}.json"
-        with open(json_file, 'w') as f:
-            json.dump(json_data, f, indent=2)
-        
+        page_source = self.file_repo.load(
+            file_type='raw_pagesources', 
+            is_txt=True, 
+            file_name=f"{self.game_id}.txt"
+        )
+        # NOTE: There is a LOT of information stored in the json_data (not just events). 
+        # Therefore, saving as an attribute to use elsewhere
+        self.json_data = self._format_pagesource(page_source)
+        self.file_repo.save(
+            file_type='parsed_page_sources', 
+            data=self.json_data, 
+            file_name=f"{self.game_id}.json"
+        )
         # Extract events
-        self.json_data = json_data
-        if "events" not in json_data:
+        if "events" not in self.json_data:
             self.logger.warning(f"No events found in game {self.game_id}")
             return []
         
-        self.logger.info(f"Extracted {len(json_data['events'])} events from game {self.game_id}")
-        return json_data['events']
+        self.logger.info(f"Extracted {len(self.json_data['events'])} events from game {self.game_id}")
+        return self.json_data['events']
     
     def save_projections(self, events: List[dict]):
         """
@@ -101,6 +97,7 @@ class SingleGameScraper:
                 projections.append(projection)
             except ValueError as e:
                 # Log the missing player mapping
+                # NOTE: this player info should immdiately get updated in the 
                 self.logger.warning(f"Undetected player {event.get('playerId')} for event {event['id']}")
                 continue
         try:
@@ -114,50 +111,42 @@ class SingleGameScraper:
         
     def extract_lineup(self) -> dict:
         """
-        Extract lineup data from json_data and saves to file.
-        Returns a dictionary with player IDs separated by team.
-        """
-        if self.json_data is None:
-            raise ValueError(f"No events found in game {self.game_id}")
-        if self.HOME_KEYWORD not in self.json_data or self.AWAY_KEYWORD not in self.json_data:
-            raise ValueError(f"No lineup data found in game {self.game_id}")
-                
+        Extract lineup data from json_data and saves to file
+        Returns:
+            a dictionary with player IDs separated by team. 
+            If convert_to_opta is True, will convert the player IDs to Opta IDs using the player_mappings dictionary.
+        """              
         # save lineup as json
-        home_lineup, away_lineup = self._format_lineup_data(self.json_data, self.game_id)
-        with open(paths.lineups_dir / f"{self.game_id}.json", 'w') as f:
-            json.dump({self.HOME_KEYWORD: home_lineup, self.AWAY_KEYWORD: away_lineup}, f, indent=2)
+        home_lineup, away_lineup = self._format_lineup_data()
+        lineup_info = {
+            self.HOME_KEYWORD: home_lineup,
+            self.AWAY_KEYWORD: away_lineup
+        }
+        self.file_repo.save(
+            file_type='lineups',
+            data=lineup_info,
+            file_name=f"{self.game_id}.json"
+        )
+        return lineup_info
 
-        # Extract all player IDs from both teams' formations
-        team_player_ids = defaultdict(list)
-        for team in [self.HOME_KEYWORD, self.AWAY_KEYWORD]:
-            if self.FORMATION_KEYWORD in self.json_data[team] and self.json_data[team][self.FORMATION_KEYWORD]:
-                formation = self.json_data[team][self.FORMATION_KEYWORD][0]
-                team_player_ids[team] = formation.get(self.PLAYER_IDS_KEYWORD, [])
-
-        return team_player_ids
-
-    def update_player_mappings(self) -> dict:
+    def update_player_mappings(self) -> List[Dict[str, Union[str, int]]]:
         """
-        Update player mappings for players that don't exist in the mapping.
+        Update player mappings for players that don't exist in the database.
         Returns a dictionary of new player mappings.
         """
         updated = False 
-        new_player_mappings = {}
+        new_player_data = []
         player_info = self._extract_player_info()
 
         for player_id, (player_name, jersey_number, ws_team_id) in player_info.items():
+            # NOTE: for now, only if they don't exist in mapping but should actually do this every time
+            # Choosing not to do it for now since don't want to overwrite Opta data (more detailed) with Whoscored.
             if player_id not in self.player_mappings:
                 updated = True
-                # Generate random Opta-like ID
-                opta_id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=random.randint(20, 25)))
-                self.player_mappings[player_id] = opta_id
-                
-                # Split name into first and last name
-                name_parts = player_name.split(maxsplit=1)
-                first_name = name_parts[0]
-                last_name = name_parts[1] if len(name_parts) > 1 else ""
-                
+                opta_id = self._create_opta_id()
+
                 # Create player data dictionary
+                first_name, last_name = self._format_names(player_name)
                 player_data = {
                     'player_id': opta_id,
                     'team_id': self.team_mappings[ws_team_id],
@@ -168,27 +157,28 @@ class SingleGameScraper:
                     'match_name': player_name,
                     'shirt_number': jersey_number
                 }
-                
-                # Store mapping for return
-                new_player_mappings[player_id] = player_data
-                # Insert player into database
-                self.mapping_repo.insert_player_data(
+                # update relevant data  
+                # NOTE: Assumes messages are processed within a week (i.e. before the same team plays again)
+                self.player_mappings[player_id] = opta_id
+                self.scraper_repo.insert_player_data(
                     session=get_session(),
                     **player_data
                 )
+                # store for return
+                new_player_data.append(player_data)
 
         if updated:
-            self.logger.info(f"Added {len(new_player_mappings)} new player mappings")
-            self.mapping_repo.save(mapping_types.PLAYER, self.player_mappings)
+            self.logger.info(f"Added {len(new_player_data)} new player mappings")
+            self.file_repo.save("player", data=self.player_mappings)
         
-        return new_player_mappings
+        return new_player_data
 
 
     ###################################
     # Class specific helper functions #
     ###################################
 
-    def _extract_player_info(self) -> dict:
+    def _extract_player_info(self) -> Dict[str, Tuple[str, str, str]]:
         """
         Only called if player mappings are not found.
         Extracts the minimal information to fill in the players table with the the new players
@@ -214,14 +204,34 @@ class SingleGameScraper:
 
         return player_info
 
-    def _convert_to_projection(self, event: dict) -> dict:
-        transformed_qualifiers = self._transform_qualifiers(event.get('qualifiers', {}))
-        match_id, team_id, player_id = self._get_mappings(event)
+    def _convert_to_projection(
+        self, 
+        event: dict
+    ) -> dict:
+        """
+        Creating a dictionary entry that can be converted to a MatchProjectionModel.
+        Need to map the WhoScored ids to an Opta ids.
+        """
+        def _transform_qualifiers(qualifiers: dict) -> List[dict]:
+            """
+            Transform WhoScored qualifiers to Opta format.
+            """
+            transformed = []
+            for qualifier in qualifiers:
+                transformed.append({
+                    'qualifierId': qualifier['type']['value'],
+                    'value': qualifier.get('value', '')
+                })
+            return transformed
         
+        # NOTE: some events don't have a teamId or playerId
+        ws_team_id = event.get('teamId', None)
+        ws_player_id = event.get('playerId', None)
+
         projection = {
-            'match_id': match_id,
-            'player_id': player_id,
-            'contestant_id': team_id,
+            'match_id': self.ws_to_opta_mapping[self.game_id],
+            'player_id': self.player_mappings[str(ws_player_id)] if ws_player_id else None,
+            'contestant_id': self.team_mappings[str(ws_team_id)] if ws_team_id else None,
             'event_id': int(event['id']),
             'local_event_id': event.get('eventId'),
             'type_id': event.get('type', {}).get('value'),
@@ -232,52 +242,26 @@ class SingleGameScraper:
             'outcome': event.get('outcomeType', {}).get('value'),
             'x': event.get('x'),
             'y': event.get('y'),
-            'qualifiers': transformed_qualifiers,
+            'qualifiers': _transform_qualifiers(event.get('qualifiers', {})) ,
             'time_stamp': None,
             'last_modified': None
         }
         return projection    
-        # return MatchProjectionModel().deserialize(projection)
     
-    def _get_mappings(self, event: dict) -> Tuple[str, str, Optional[str]]:
+    def _create_opta_id(self) -> str:
         """
-        Get mappings for team, match, and player.
-        Team and match mappings must exist, player mappings might not..
+        Create a random Opta-like ID.
         """
-        # Team and match mappings must exist    
-        match_id = self.mapping_repo.get_mapping(mappings.MATCH, self.game_id)
-        assert match_id is not None, f"Match mapping not found for {self.game_id}"
-
-        ws_team_id = str(event.get('teamId')) if event.get('teamId') else None
-        team_id = self.mapping_repo.get_mapping(mappings.TEAM, ws_team_id)
-        assert team_id is not None, f"Team mapping not found for {ws_team_id}"
-        
-        # Player mapping might not exist
-        ws_player_id = str(event.get('playerId')) if event.get('playerId') else None
-        player_id = None
-        if ws_player_id:
-            # Let ValueError propagate up for handling in save_projections
-            player_id = self.mapping_repo.get_mapping(mappings.PLAYER, ws_player_id)
-        
-        return match_id, team_id, player_id
+        return ''.join(random.choices(string.ascii_lowercase + string.digits, k=random.randint(20, 25)))
     
-    def _transform_qualifiers(self, qualifiers: dict) -> List[dict]:
+    def _format_names(self, name: str) -> Tuple[str, str]:
         """
-        Transform WhoScored qualifiers to Opta format.
-        
-        Args:
-            qualifiers: WhoScored qualifiers
-            
-        Returns:
-            List[dict]: Transformed qualifiers in Opta format
+        Format name into first and last name.
         """
-        transformed = []
-        for qualifier in qualifiers:
-            transformed.append({
-                'qualifierId': qualifier['type']['value'],
-                'value': qualifier.get('value', '')
-            })
-        return transformed
+        name_parts = name.split(maxsplit=1)
+        first_name = name_parts[0]
+        last_name = name_parts[1] if len(name_parts) > 1 else ""
+        return first_name, last_name
     
     def _format_pagesource(self, raw_content: str) -> Dict:
         """
@@ -297,11 +281,9 @@ class SingleGameScraper:
             
         try:
             data = json.loads(raw_content)
-            
             # Validate required fields
-            required_fields = ["playerIdNameDictionary", "events", "home", "away"]
+            required_fields = [self.PLAYER_NAME_DICTIONARY_KEYWORD, self.EVENTS_KEYWORD, self.HOME_KEYWORD, self.AWAY_KEYWORD]
             missing_fields = [field for field in required_fields if field not in data]
-            
             if missing_fields:
                 raise ValueError(f"Missing required fields: {missing_fields}")
             return data
@@ -309,8 +291,7 @@ class SingleGameScraper:
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON format: {e}")
     
-    @staticmethod
-    def _format_lineup_data(json_data: dict, game_id: int) -> tuple[dict, dict]:
+    def _format_lineup_data(self) -> tuple[dict, dict]:
         """
         Convert both teams' formation data into the required lineup info format.
         Takes the first formation entry (initial lineup) for each team.
@@ -320,15 +301,19 @@ class SingleGameScraper:
         """
         def _format_team(team_data: dict) -> dict:
             formation = team_data['formations'][0]
+            opta_player_ids = [
+                self.player_mappings.get(str(pid), str(pid))
+                for pid in formation['playerIds']
+            ]
             return {
-                "data_type": "whoscored",
-                "game_id": game_id,
+                "data_type": "opta",
+                "game_id": self.ws_to_opta_mapping[self.game_id],
                 "lineup_info": {
-                    "team_id": team_data['teamId'],
+                    "team_id": self.team_mappings[str(team_data['teamId'])],
                     "formation_id": formation['formationId'],
                     "formation_name": formation['formationName'],
                     "formation_slots": formation['formationSlots'],
-                    "player_ids": formation['playerIds'],
+                    "player_ids": opta_player_ids,
                     "formation_positions": [
                         {
                             "vertical": pos["vertical"],
@@ -336,13 +321,11 @@ class SingleGameScraper:
                         }
                         for pos in formation['formationPositions']
                     ],
-                    "captain_id": formation['captainPlayerId']
+                    "captain_id": self.player_mappings[str(formation['captainPlayerId'])] 
                 }
             }
         
-        home_lineup = _format_team(json_data["home"])
-        away_lineup = _format_team(json_data["away"])
-        
+        home_lineup = _format_team(self.json_data["home"])
+        away_lineup = _format_team(self.json_data["away"])
         return home_lineup, away_lineup
-
 

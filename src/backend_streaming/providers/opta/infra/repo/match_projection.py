@@ -1,5 +1,5 @@
+import os
 from typing import List, Optional
-
 from backend_streaming.providers.opta.infra.models import MatchProjectionModel
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
@@ -8,11 +8,14 @@ import logging
 
 
 class MatchProjectionRepository:
-    """Responsible for persisting and retrieving the read model in a table."""
+    """
+    Responsible for persisting and retrieving the read model in a table.
+    """
     def __init__(self, session_factory, logger: Optional[logging.Logger] = None):
         self.session_factory = session_factory
         self.logger = logger or logging.getLogger(__name__)
 
+    # NOTE: currently deprecated!
     def _convert_to_orm_model(
         self, 
         match_id: str, 
@@ -20,7 +23,7 @@ class MatchProjectionRepository:
         event_entry: dict
     ) -> MatchProjectionModel:
         """
-        Convert a domain event entry into an ORM model.
+        Convert a single event entry into an ORM model. 
         """
         return MatchProjectionModel(
             match_id=match_id,
@@ -58,8 +61,6 @@ class MatchProjectionRepository:
             
             # TODO: this is being triggered but why don't I see the inserts?
             self.logger.info(f"upserting {len(unique_models)} projections")
-            import os
-            self.logger.info(f"db is {os.getenv('DATABASE_URL')}")
             stmt = insert(MatchProjectionModel).values(unique_models)
             stmt = stmt.on_conflict_do_update(
                 index_elements=['event_id'],  # Use primary key instead of named constraint
@@ -73,7 +74,6 @@ class MatchProjectionRepository:
             raise
         finally:
             session.close()
-
 
     def get_match_state(self, match_id: str) -> List[MatchProjectionModel]:
         """

@@ -1,9 +1,9 @@
 {
   "home": {
-    "data_type": "whoscored",
-    "game_id": "1821125",
+    "data_type": "opta",
+    "game_id": "cvk0erynir4aj77er9ldbjm6s",
     "lineup_info": {
-      "team_id": 211,
+      "team_id": "e5p0ehyguld7egzhiedpdnc3w",
       "formation_id": 8,
       "formation_name": "4231",
       "formation_slots": [
@@ -29,26 +29,26 @@
         0
       ],
       "player_ids": [
-        400138,
-        386979,
-        298694,
-        446133,
-        365402,
-        109922,
-        484175,
-        436048,
-        373525,
-        362433,
-        425142,
-        421944,
-        122926,
-        471784,
-        443004,
-        39308,
-        470690,
-        445059,
-        342889,
-        469629
+        "3wwi5vf2l1qbz7e5zdjoy8yga",
+        "83jpq8fuprm9h1e2thoxv1tyh",
+        "87g6qlasqe627i5g7ir30j2sp",
+        "eznax89pqmo8n8rynjf4a",
+        "2gj7h5fxuh4y0tbp6j308yk4q",
+        "6o9mxqdmxip6ik6w6zgd7k8ut",
+        "50lnmkk33eoivv4ksly77hkpg",
+        "bt40tdni85hiz1gtkw0b6qmfo",
+        "x91ee1983g5r7xiog2i8l",
+        "e8ekkg0yayhhmmhinl0v9une",
+        "aititrd343hal6ount0dp5zze",
+        "9tlowuu89l3fnv5iowela1ca2",
+        "2wwo7wcxz4gfy0ubkzynvrsnp",
+        "90wsjxdc3ibvah5gm9tnsjwbu",
+        "ai5p5wgft6c09bjbldz9sfeac",
+        "c0yxqwkxqx1sty7abj1qwh9zp",
+        "192qpmicfd10d7mutv5y762qy",
+        "672cwl9zj2d6lce6jda350vvu",
+        "cm7l7qimy4iysm1khmpc7u961",
+        "eikpw8bl1se3sj6hnsndi7zmc"
       ],
       "formation_positions": [
         {
@@ -96,14 +96,14 @@
           "horizontal": 8.0
         }
       ],
-      "captain_id": 109922
+      "captain_id": "6o9mxqdmxip6ik6w6zgd7k8ut"
     }
   },
   "away": {
-    "data_type": "whoscored",
-    "game_id": "1821125",
+    "data_type": "opta",
+    "game_id": "cvk0erynir4aj77er9ldbjm6s",
     "lineup_info": {
-      "team_id": 183,
+      "team_id": "1pse9ta7a45pi2w2grjim70ge",
       "formation_id": 8,
       "formation_name": "4231",
       "formation_slots": [
@@ -129,26 +129,26 @@
         0
       ],
       "player_ids": [
-        113880,
-        136456,
-        424273,
-        315275,
-        362837,
-        468852,
-        295084,
-        128882,
-        422183,
-        331579,
-        357073,
-        384131,
-        410998,
-        384430,
-        344314,
-        361879,
-        437310,
-        415163,
-        455460,
-        547069
+        "hftjbqglmmouki0qgnc1o",
+        "djelmk2oafas355n2u0d1bumt",
+        "a2zavv31d2aadyddk0kjttdgq",
+        "7dbzcwyph2xoljyhaogjo7mcp",
+        "9ea8t509bssf2bhp1n5xxvrl6",
+        "d2hnxi1yi5rgqj1tvxh1813x0",
+        "96ou7x51dxymv16l0ocsuhbyt",
+        "cr4c6htcw2jewsvboj6s8p045",
+        "dg4782hj9xdqg46w225kzph5g",
+        "5qgc6zjc38a5xjl35gs7h3vu1",
+        "7tnuxlg9l4rjhc7j3ko36hduy",
+        "b1y7pnmjciimn2ntaf8o5m73e",
+        "mfsus6ryni5b1hjn0y70sbo4",
+        "b4oab3ck3f2hapd47wsmarf7",
+        "b3gobhr43y8oxpafvp4f8rgmh",
+        "7xlnqr43lvc8coshx65qd5omh",
+        "gbit5wtlizjfxqs8i387w",
+        "4vzixye912wmbbgju0gpz7sdm",
+        "120n7t87g880iihe0q6hrxo8h",
+        "a27jmusots4qlgmc8yrecv02c"
       ],
       "formation_positions": [
         {
@@ -196,7 +196,7 @@
           "horizontal": 8.0
         }
       ],
-      "captain_id": 136456
+      "captain_id": "djelmk2oafas355n2u0d1bumt"
     }
   }
 }

@@ -14,7 +14,13 @@ logger = logging.getLogger(__name__)
 QUEUE_NAME = 'game_events'
 
 class SingleGameStreamer:
-    
+    """
+    Streamer for a single game. Expected to send:
+    1. event projections
+    2. player data
+    3. lineup info
+    """
+    QUEUE_NAME = 'game_data'
     PROGRESS_MESSAGE_TYPE = 'update'
     STOP_MESSAGE_TYPE = 'stop'
 
@@ -22,11 +28,10 @@ class SingleGameStreamer:
         self, 
         game_id: str, 
         url: str = os.getenv('RABBITMQ_URL'),
-        queue_name: str = QUEUE_NAME
     ):
         self.game_id = game_id
         self.url = url
-        self.queue_name = queue_name
+        self.queue_name = self.QUEUE_NAME
         # TODO: these are RabbitMQ connection objects? 
         # If so, should keep dependencies to be injected instead of fixing design
         self.connection = None
@@ -36,23 +41,18 @@ class SingleGameStreamer:
         """Establish connection and channel"""
         if not self.connection:
             self.connection = await aio_pika.connect_robust(self.url)
+            # NOTE: for now, using default channel settings
             self.channel = await self.connection.channel()
             await self.channel.declare_queue(self.queue_name)
 
     async def send_message(
         self, 
         message_type: str, 
-        events: List[MatchProjectionModel] = None
+        payload: dict
     ):
         """Send message to RabbitMQ queue"""
         if not self.channel:
             await self.connect()
-
-        # payload must be a json serializable object
-        if isinstance(events[0], dict):
-            payload = events
-        else:
-            payload = [model.to_dict() for model in events]
 
         message = aio_pika.Message(
             body=json.dumps(payload).encode(),

@@ -31,4 +31,6 @@ def main():
     fetch_games(game_ids)
 
 if __name__ == "__main__":
+    import os
+    print(f"db before init is: {os.getenv('DATABASE_URL')}")
     main()

@@ -17,9 +17,6 @@ def process_game(game_id: str, scraper: SingleGameScraper):
 
     # NOTE: scraper is only passed in when running manually
     """
-    with open(paths.ws_to_opta_match_mapping_path, 'r') as f:
-        ws_to_opta_match_mapping = json.load(f)
-
     # setup
     logger = setup_game_logger(game_id)
     start_time = datetime.now()
@@ -33,22 +30,19 @@ def process_game(game_id: str, scraper: SingleGameScraper):
 
     try:
         logger.info(f"Starting game processor at {start_time}")
-        streamer = SingleGameStreamer(scraper.ws_to_opta_match_mapping[game_id]),
+        streamer = SingleGameStreamer(scraper.ws_to_opta_mapping[game_id])
         is_eog = False
         while not is_eog:
-            fetch_stats['total_fetches'] += 1
-            current_time = datetime.now()
-
             # TODO: implement proper condition to check for eog...
             # For now, just running once to prevent infinite loop.
             is_eog = True
             try:
-                # get the events and save into match_projections table
+                # this populates the json_data attribute in the scraper
+                # NOTE: the ORDER of operations for fetching and updating mappings is important.
                 events = scraper.fetch_events()
-                projections = scraper.save_projections(events)
-                # extract lineup data and update player mappings
-                player_mappings = scraper.update_player_mappings()
+                player_data = scraper.update_player_mappings()
                 lineup_info = scraper.extract_lineup()
+                projections = scraper.save_projections(events)
 
                 # stream into designated queue
                 asyncio.run(
@@ -56,26 +50,20 @@ def process_game(game_id: str, scraper: SingleGameScraper):
                         streamer = streamer,
                         data = {
                             'projections': projections,
-                            'player_mappings': player_mappings,
+                            'player_data': player_data,
                             'lineup_info': lineup_info
                         },
                         logger = logger, 
                         is_eog = is_eog
                     )
                 )
-                
                 # log useful stats
                 fetch_stats['total_events'] = len(events)
-                # NOTE: these logs for if we want live data. Keeping for now
+                fetch_stats['total_fetches'] += 1
+                fetch_stats['last_fetch_time'] = datetime.now()
                 fetch_stats['last_event_count'] = len(events)
-                fetch_stats['last_fetch_time'] = current_time
                 fetch_stats['successful_fetches'] += 1
-                logger.info(
-                    f"Fetch {fetch_stats['total_fetches']}: "
-                    f"Found {len(events)} events. "
-                    f"Total successful fetches: {fetch_stats['successful_fetches']}"
-                )
-    
+                
             except Exception as fetch_error:
                 logger.error(f"Error during fetch: {fetch_error}", exc_info=True)
         
@@ -94,14 +82,14 @@ async def stream(
     is_eog: bool = False,
 ):
     """
-    Helper function to stream events asynchronously.
-    Accepts data fields to have it's own message type.
+    Helper function to stream data into main server asynchronously.
+    Each data fields to have it's own message type.
     """
     try:
         message_type = streamer.STOP_MESSAGE_TYPE if is_eog else streamer.PROGRESS_MESSAGE_TYPE
         await streamer.connect()
-        await streamer.send_message(message_type, events)
-        logger.info(f"Streamed {len(events)} events")
+        await streamer.send_message(message_type, data)
+        logger.info(f"Streamed fields: {data.keys()}")
     except Exception as e:
         logger.error(f"Failed to stream events: {e}")
         raise
