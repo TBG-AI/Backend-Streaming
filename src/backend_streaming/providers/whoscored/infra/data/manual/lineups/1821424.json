@@ -1,0 +1,202 @@
+{
+  "home": {
+    "data_type": "whoscored",
+    "game_id": "1821424",
+    "lineup_info": {
+      "team_id": 30,
+      "formation_id": 4,
+      "formation_name": "433",
+      "formation_slots": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "player_ids": [
+        147863,
+        362352,
+        362219,
+        303657,
+        330816,
+        103837,
+        505295,
+        137015,
+        422885,
+        355855,
+        91909,
+        457006,
+        303096,
+        401044,
+        429922,
+        379688,
+        444751,
+        403859,
+        407154,
+        526481
+      ],
+      "formation_positions": [
+        {
+          "vertical": 0.0,
+          "horizontal": 5.0
+        },
+        {
+          "vertical": 2.5,
+          "horizontal": 1.0
+        },
+        {
+          "vertical": 2.5,
+          "horizontal": 9.0
+        },
+        {
+          "vertical": 5.5,
+          "horizontal": 5.0
+        },
+        {
+          "vertical": 2.5,
+          "horizontal": 3.5
+        },
+        {
+          "vertical": 2.5,
+          "horizontal": 6.5
+        },
+        {
+          "vertical": 5.5,
+          "horizontal": 2.0
+        },
+        {
+          "vertical": 5.5,
+          "horizontal": 8.0
+        },
+        {
+          "vertical": 8.5,
+          "horizontal": 5.0
+        },
+        {
+          "vertical": 8.5,
+          "horizontal": 2.0
+        },
+        {
+          "vertical": 8.5,
+          "horizontal": 8.0
+        }
+      ],
+      "captain_id": 91909
+    }
+  },
+  "away": {
+    "data_type": "whoscored",
+    "game_id": "1821424",
+    "lineup_info": {
+      "team_id": 32,
+      "formation_id": 17,
+      "formation_name": "3421",
+      "formation_slots": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "player_ids": [
+        260843,
+        353418,
+        495260,
+        320374,
+        99487,
+        349932,
+        123761,
+        88526,
+        439584,
+        383956,
+        437022,
+        492376,
+        100008,
+        517341,
+        470680,
+        533128,
+        455860,
+        553324,
+        553325,
+        553323
+      ],
+      "formation_positions": [
+        {
+          "vertical": 0.0,
+          "horizontal": 5.0
+        },
+        {
+          "vertical": 5.0,
+          "horizontal": 1.0
+        },
+        {
+          "vertical": 5.0,
+          "horizontal": 9.0
+        },
+        {
+          "vertical": 2.5,
+          "horizontal": 8.0
+        },
+        {
+          "vertical": 2.5,
+          "horizontal": 5.0
+        },
+        {
+          "vertical": 2.5,
+          "horizontal": 2.0
+        },
+        {
+          "vertical": 5.0,
+          "horizontal": 3.5
+        },
+        {
+          "vertical": 5.0,
+          "horizontal": 6.5
+        },
+        {
+          "vertical": 9.0,
+          "horizontal": 5.0
+        },
+        {
+          "vertical": 7.5,
+          "horizontal": 3.5
+        },
+        {
+          "vertical": 7.5,
+          "horizontal": 6.5
+        }
+      ],
+      "captain_id": 123761
+    }
+  }
+}

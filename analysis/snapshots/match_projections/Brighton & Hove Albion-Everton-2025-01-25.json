@@ -1,0 +1,786 @@
+[
+  {
+    "id": 29375,
+    "match_id": "cfjmtr9xrz3ydur0k879qbjmc",
+    "event_id": 2769033877,
+    "local_event_id": 1078,
+    "type_id": 1,
+    "period_id": 1,
+    "time_min": 27,
+    "time_sec": 14,
+    "player_id": "2gj7h5fxuh4y0tbp6j308yk4q",
+    "contestant_id": "e5p0ehyguld7egzhiedpdnc3w",
+    "player_name": "J. van Hecke",
+    "outcome": 1,
+    "x": 44.8,
+    "y": 41.8,
+    "qualifiers": [
+      {
+        "qualifierId": 212,
+        "value": "27.0"
+      },
+      {
+        "qualifierId": 140,
+        "value": "51.6"
+      },
+      {
+        "qualifierId": 56,
+        "value": "Left"
+      },
+      {
+        "qualifierId": 178,
+        "value": null
+      },
+      {
+        "qualifierId": 213,
+        "value": "1.30"
+      },
+      {
+        "qualifierId": 141,
+        "value": "80.1"
+      },
+      {
+        "qualifierId": 189,
+        "value": null
+      }
+    ],
+    "time_stamp": "2025-01-25T15:27:21.992Z",
+    "last_modified": "2025-01-26T00:05:42Z"
+  },
+  {
+    "id": 29376,
+    "match_id": "cfjmtr9xrz3ydur0k879qbjmc",
+    "event_id": 2769033973,
+    "local_event_id": 1079,
+    "type_id": 1,
+    "period_id": 1,
+    "time_min": 27,
+    "time_sec": 17,
+    "player_id": "jagvvzc7329tf2c64mnc251",
+    "contestant_id": "e5p0ehyguld7egzhiedpdnc3w",
+    "player_name": "L. Dunk",
+    "outcome": 1,
+    "x": 51.8,
+    "y": 80.7,
+    "qualifiers": [
+      {
+        "qualifierId": 189,
+        "value": null
+      },
+      {
+        "qualifierId": 141,
+        "value": "63.1"
+      },
+      {
+        "qualifierId": 212,
+        "value": "12.3"
+      },
+      {
+        "qualifierId": 213,
+        "value": "4.94"
+      },
+      {
+        "qualifierId": 56,
+        "value": "Center"
+      },
+      {
+        "qualifierId": 178,
+        "value": null
+      },
+      {
+        "qualifierId": 140,
+        "value": "54.4"
+      }
+    ],
+    "time_stamp": "2025-01-25T15:27:24.950Z",
+    "last_modified": "2025-01-26T00:05:44Z"
+  },
+  {
+    "id": 29377,
+    "match_id": "cfjmtr9xrz3ydur0k879qbjmc",
+    "event_id": 2768954609,
+    "local_event_id": 1072,
+    "type_id": 3,
+    "period_id": 1,
+    "time_min": 27,
+    "time_sec": 39,
+    "player_id": "83jpq8fuprm9h1e2thoxv1tyh",
+    "contestant_id": "e5p0ehyguld7egzhiedpdnc3w",
+    "player_name": "T. Lamptey",
+    "outcome": 0,
+    "x": 84.7,
+    "y": 83.6,
+    "qualifiers": [
+      {
+        "qualifierId": 56,
+        "value": "Left"
+      },
+      {
+        "qualifierId": 467,
+        "value": "5ph2ln91ycq1qlq03cnqqs9re"
+      },
+      {
+        "qualifierId": 178,
+        "value": null
+      },
+      {
+        "qualifierId": 465,
+        "value": null
+      },
+      {
+        "qualifierId": 286,
+        "value": null
+      }
+    ],
+    "time_stamp": "2025-01-25T15:27:47.473Z",
+    "last_modified": "2025-01-26T00:06:08Z"
+  },
+  {
+    "id": 29378,
+    "match_id": "cfjmtr9xrz3ydur0k879qbjmc",
+    "event_id": 2768979531,
+    "local_event_id": 728,
+    "type_id": 83,
+    "period_id": 1,
+    "time_min": 34,
+    "time_sec": 22,
+    "player_id": "ceerfv28fygp7m2euv5n5uu39",
+    "contestant_id": "ehd2iemqmschhj2ec0vayztzz",
+    "player_name": "I. Gueye",
+    "outcome": 1,
+    "x": 63.3,
+    "y": 78.7,
+    "qualifiers": [
+      {
+        "qualifierId": 399,
+        "value": "2gj7h5fxuh4y0tbp6j308yk4q"
+      }
+    ],
+    "time_stamp": "2025-01-25T15:34:30.228Z",
+    "last_modified": "2025-01-25T20:59:26Z"
+  },
+  {
+    "id": 29379,
+    "match_id": "cfjmtr9xrz3ydur0k879qbjmc",
+    "event_id": 2768981839,
+    "local_event_id": 1073,
+    "type_id": 61,
+    "period_id": 1,
+    "time_min": 35,
+    "time_sec": 37,
+    "player_id": "bh20puvz2w21mnag7ul1g3c9h",
+    "contestant_id": "e5p0ehyguld7egzhiedpdnc3w",
+    "player_name": "J. Veltman",
+    "outcome": 0,
+    "x": 89.2,
+    "y": 8.7,
+    "qualifiers": [
+      {
+        "qualifierId": 56,
+        "value": "Right"
+      },
+      {
+        "qualifierId": 178,
+        "value": null
+      }
+    ],
+    "time_stamp": "2025-01-25T15:35:44.965Z",
+    "last_modified": "2025-01-25T23:46:50Z"
+  },
+  {
+    "id": 29380,
+    "match_id": "cfjmtr9xrz3ydur0k879qbjmc",
+    "event_id": 2768993741,
+    "local_event_id": 729,
+    "type_id": 3,
+    "period_id": 1,
+    "time_min": 46,
+    "time_sec": 6,
+    "player_id": "3dm2bfuoyips4rbj0vhvbp9be",
+    "contestant_id": "ehd2iemqmschhj2ec0vayztzz",
+    "player_name": "I. Ndiaye",
+    "outcome": 0,
+    "x": 70.9,
+    "y": 96.5,
+    "qualifiers": [
+      {
+        "qualifierId": 465,
+        "value": null
+      },
+      {
+        "qualifierId": 286,
+        "value": null
+      },
+      {
+        "qualifierId": 467,
+        "value": "bt40tdni85hiz1gtkw0b6qmfo"
+      },
+      {
+        "qualifierId": 56,
+        "value": "Left"
+      },
+      {
+        "qualifierId": 178,
+        "value": null
+      }
+    ],
+    "time_stamp": "2025-01-25T15:46:14.391Z",
+    "last_modified": "2025-01-25T23:52:51Z"
+  },
+  {
+    "id": 29381,
+    "match_id": "cfjmtr9xrz3ydur0k879qbjmc",
+    "event_id": 2768999659,
+    "local_event_id": 1074,
+    "type_id": 1,
+    "period_id": 2,
+    "time_min": 45,
+    "time_sec": 13,
+    "player_id": "jagvvzc7329tf2c64mnc251",
+    "contestant_id": "e5p0ehyguld7egzhiedpdnc3w",
+    "player_name": "L. Dunk",
+    "outcome": 0,
+    "x": 29.7,
+    "y": 96.8,
+    "qualifiers": [
+      {
+        "qualifierId": 157,
+        "value": null
+      },
+      {
+        "qualifierId": 178,
+        "value": null
+      },
+      {
+        "qualifierId": 56,
+        "value": "Left"
+      },
+      {
+        "qualifierId": 1,
+        "value": null
+      },
+      {
+        "qualifierId": 140,
+        "value": "52.2"
+      },
+      {
+        "qualifierId": 141,
+        "value": "87.6"
+      },
+      {
+        "qualifierId": 212,
+        "value": "24.4"
+      },
+      {
+        "qualifierId": 213,
+        "value": "6.02"
+      }
+    ],
+    "time_stamp": "2025-01-25T16:07:58.739Z",
+    "last_modified": "2025-01-25T23:46:25Z"
+  },
+  {
+    "id": 29383,
+    "match_id": "cfjmtr9xrz3ydur0k879qbjmc",
+    "event_id": 2769001471,
+    "local_event_id": 1075,
+    "type_id": 3,
+    "period_id": 2,
+    "time_min": 47,
+    "time_sec": 19,
+    "player_id": "eaqqezw2ed1u0tt3zc128mr1m",
+    "contestant_id": "e5p0ehyguld7egzhiedpdnc3w",
+    "player_name": "Jo\u00e3o Pedro",
+    "outcome": 1,
+    "x": 91.8,
+    "y": 80.1,
+    "qualifiers": [
+      {
+        "qualifierId": 465,
+        "value": null
+      },
+      {
+        "qualifierId": 233,
+        "value": "730"
+      },
+      {
+        "qualifierId": 56,
+        "value": "Left"
+      },
+      {
+        "qualifierId": 286,
+        "value": null
+      },
+      {
+        "qualifierId": 178,
+        "value": null
+      }
+    ],
+    "time_stamp": "2025-01-25T16:10:04.838Z",
+    "last_modified": "2025-01-25T23:48:31Z"
+  },
+  {
+    "id": 29382,
+    "match_id": "cfjmtr9xrz3ydur0k879qbjmc",
+    "event_id": 2769001469,
+    "local_event_id": 730,
+    "type_id": 45,
+    "period_id": 2,
+    "time_min": 47,
+    "time_sec": 19,
+    "player_id": "ceerfv28fygp7m2euv5n5uu39",
+    "contestant_id": "ehd2iemqmschhj2ec0vayztzz",
+    "player_name": "I. Gueye",
+    "outcome": 0,
+    "x": 8.2,
+    "y": 19.9,
+    "qualifiers": [
+      {
+        "qualifierId": 285,
+        "value": null
+      },
+      {
+        "qualifierId": 233,
+        "value": "1075"
+      },
+      {
+        "qualifierId": 56,
+        "value": "Back"
+      }
+    ],
+    "time_stamp": "2025-01-25T16:10:04.838Z",
+    "last_modified": "2025-01-25T23:48:32Z"
+  },
+  {
+    "id": 29384,
+    "match_id": "cfjmtr9xrz3ydur0k879qbjmc",
+    "event_id": 2769034575,
+    "local_event_id": 733,
+    "type_id": 1,
+    "period_id": 2,
+    "time_min": 48,
+    "time_sec": 10,
+    "player_id": "8u5vfczmsnklqp9bpilrbvy8k",
+    "contestant_id": "ehd2iemqmschhj2ec0vayztzz",
+    "player_name": "J. O'Brien",
+    "outcome": 0,
+    "x": 28.9,
+    "y": 7.2,
+    "qualifiers": [
+      {
+        "qualifierId": 189,
+        "value": null
+      },
+      {
+        "qualifierId": 56,
+        "value": "Back"
+      },
+      {
+        "qualifierId": 212,
+        "value": "7.6"
+      },
+      {
+        "qualifierId": 213,
+        "value": "6.16"
+      },
+      {
+        "qualifierId": 140,
+        "value": "36.1"
+      },
+      {
+        "qualifierId": 178,
+        "value": null
+      },
+      {
+        "qualifierId": 141,
+        "value": "5.8"
+      }
+    ],
+    "time_stamp": "2025-01-25T16:10:55.411Z",
+    "last_modified": "2025-01-25T23:49:04Z"
+  },
+  {
+    "id": 29385,
+    "match_id": "cfjmtr9xrz3ydur0k879qbjmc",
+    "event_id": 2769003671,
+    "local_event_id": 1076,
+    "type_id": 61,
+    "period_id": 2,
+    "time_min": 48,
+    "time_sec": 10,
+    "player_id": "bh20puvz2w21mnag7ul1g3c9h",
+    "contestant_id": "e5p0ehyguld7egzhiedpdnc3w",
+    "player_name": "J. Veltman",
+    "outcome": 1,
+    "x": 64.1,
+    "y": 92.2,
+    "qualifiers": [
+      {
+        "qualifierId": 178,
+        "value": null
+      },
+      {
+        "qualifierId": 56,
+        "value": "Left"
+      }
+    ],
+    "time_stamp": "2025-01-25T16:10:55.801Z",
+    "last_modified": "2025-01-25T23:49:07Z"
+  },
+  {
+    "id": 29386,
+    "match_id": "cfjmtr9xrz3ydur0k879qbjmc",
+    "event_id": 2769005611,
+    "local_event_id": 731,
+    "type_id": 1,
+    "period_id": 2,
+    "time_min": 50,
+    "time_sec": 22,
+    "player_id": "ceerfv28fygp7m2euv5n5uu39",
+    "contestant_id": "ehd2iemqmschhj2ec0vayztzz",
+    "player_name": "I. Gueye",
+    "outcome": 1,
+    "x": 17.7,
+    "y": 86.2,
+    "qualifiers": [
+      {
+        "qualifierId": 213,
+        "value": "0.00"
+      },
+      {
+        "qualifierId": 212,
+        "value": "9.4"
+      },
+      {
+        "qualifierId": 141,
+        "value": "86.2"
+      },
+      {
+        "qualifierId": 56,
+        "value": "Back"
+      },
+      {
+        "qualifierId": 178,
+        "value": null
+      },
+      {
+        "qualifierId": 140,
+        "value": "26.7"
+      }
+    ],
+    "time_stamp": "2025-01-25T16:13:07.994Z",
+    "last_modified": "2025-01-25T23:51:38Z"
+  },
+  {
+    "id": 29387,
+    "match_id": "cfjmtr9xrz3ydur0k879qbjmc",
+    "event_id": 2769034927,
+    "local_event_id": 1080,
+    "type_id": 1,
+    "period_id": 2,
+    "time_min": 51,
+    "time_sec": 6,
+    "player_id": "2gj7h5fxuh4y0tbp6j308yk4q",
+    "contestant_id": "e5p0ehyguld7egzhiedpdnc3w",
+    "player_name": "J. van Hecke",
+    "outcome": 1,
+    "x": 31.5,
+    "y": 50.1,
+    "qualifiers": [
+      {
+        "qualifierId": 140,
+        "value": "39.6"
+      },
+      {
+        "qualifierId": 212,
+        "value": "9.2"
+      },
+      {
+        "qualifierId": 141,
+        "value": "55.3"
+      },
+      {
+        "qualifierId": 178,
+        "value": null
+      },
+      {
+        "qualifierId": 56,
+        "value": "Back"
+      },
+      {
+        "qualifierId": 213,
+        "value": "0.39"
+      },
+      {
+        "qualifierId": 189,
+        "value": null
+      }
+    ],
+    "time_stamp": "2025-01-25T16:13:51.917Z",
+    "last_modified": "2025-01-25T23:52:37Z"
+  },
+  {
+    "id": 29388,
+    "match_id": "cfjmtr9xrz3ydur0k879qbjmc",
+    "event_id": 2769035003,
+    "local_event_id": 1081,
+    "type_id": 1,
+    "period_id": 2,
+    "time_min": 51,
+    "time_sec": 10,
+    "player_id": "bt40tdni85hiz1gtkw0b6qmfo",
+    "contestant_id": "e5p0ehyguld7egzhiedpdnc3w",
+    "player_name": "C. Baleba",
+    "outcome": 1,
+    "x": 45.4,
+    "y": 55.3,
+    "qualifiers": [
+      {
+        "qualifierId": 213,
+        "value": "0.70"
+      },
+      {
+        "qualifierId": 212,
+        "value": "13.7"
+      },
+      {
+        "qualifierId": 178,
+        "value": null
+      },
+      {
+        "qualifierId": 141,
+        "value": "68.3"
+      },
+      {
+        "qualifierId": 140,
+        "value": "55.4"
+      },
+      {
+        "qualifierId": 189,
+        "value": null
+      },
+      {
+        "qualifierId": 56,
+        "value": "Center"
+      }
+    ],
+    "time_stamp": "2025-01-25T16:13:55.736Z",
+    "last_modified": "2025-01-25T23:52:39Z"
+  },
+  {
+    "id": 29389,
+    "match_id": "cfjmtr9xrz3ydur0k879qbjmc",
+    "event_id": 2769035033,
+    "local_event_id": 1082,
+    "type_id": 1,
+    "period_id": 2,
+    "time_min": 51,
+    "time_sec": 12,
+    "player_id": "192qpmicfd10d7mutv5y762qy",
+    "contestant_id": "e5p0ehyguld7egzhiedpdnc3w",
+    "player_name": "Y. Ayari",
+    "outcome": 1,
+    "x": 55.4,
+    "y": 70.3,
+    "qualifiers": [
+      {
+        "qualifierId": 213,
+        "value": "1.24"
+      },
+      {
+        "qualifierId": 141,
+        "value": "83.0"
+      },
+      {
+        "qualifierId": 140,
+        "value": "58.2"
+      },
+      {
+        "qualifierId": 56,
+        "value": "Left"
+      },
+      {
+        "qualifierId": 189,
+        "value": null
+      },
+      {
+        "qualifierId": 178,
+        "value": null
+      },
+      {
+        "qualifierId": 212,
+        "value": "9.1"
+      }
+    ],
+    "time_stamp": "2025-01-25T16:13:57.162Z",
+    "last_modified": "2025-01-25T23:52:42Z"
+  },
+  {
+    "id": 29390,
+    "match_id": "cfjmtr9xrz3ydur0k879qbjmc",
+    "event_id": 2769019023,
+    "local_event_id": 1077,
+    "type_id": 44,
+    "period_id": 2,
+    "time_min": 65,
+    "time_sec": 29,
+    "player_id": "jagvvzc7329tf2c64mnc251",
+    "contestant_id": "e5p0ehyguld7egzhiedpdnc3w",
+    "player_name": "L. Dunk",
+    "outcome": 1,
+    "x": 35.7,
+    "y": 66,
+    "qualifiers": [
+      {
+        "qualifierId": 233,
+        "value": "732"
+      },
+      {
+        "qualifierId": 285,
+        "value": null
+      },
+      {
+        "qualifierId": 56,
+        "value": "Back"
+      }
+    ],
+    "time_stamp": "2025-01-25T16:28:14.184Z",
+    "last_modified": "2025-01-26T01:26:08Z"
+  },
+  {
+    "id": 29391,
+    "match_id": "cfjmtr9xrz3ydur0k879qbjmc",
+    "event_id": 2769019017,
+    "local_event_id": 732,
+    "type_id": 44,
+    "period_id": 2,
+    "time_min": 65,
+    "time_sec": 29,
+    "player_id": "6z3a27dxffwacyxof0imvcfvu",
+    "contestant_id": "ehd2iemqmschhj2ec0vayztzz",
+    "player_name": "Beto",
+    "outcome": 0,
+    "x": 64.3,
+    "y": 34,
+    "qualifiers": [
+      {
+        "qualifierId": 56,
+        "value": "Center"
+      },
+      {
+        "qualifierId": 286,
+        "value": null
+      },
+      {
+        "qualifierId": 233,
+        "value": "1077"
+      }
+    ],
+    "time_stamp": "2025-01-25T16:28:14.185Z",
+    "last_modified": "2025-01-25T23:55:19Z"
+  },
+  {
+    "id": 29392,
+    "match_id": "cfjmtr9xrz3ydur0k879qbjmc",
+    "event_id": 2769035627,
+    "local_event_id": 1083,
+    "type_id": 1,
+    "period_id": 2,
+    "time_min": 71,
+    "time_sec": 17,
+    "player_id": "bh20puvz2w21mnag7ul1g3c9h",
+    "contestant_id": "e5p0ehyguld7egzhiedpdnc3w",
+    "player_name": "J. Veltman",
+    "outcome": 1,
+    "x": 30.1,
+    "y": 82.7,
+    "qualifiers": [
+      {
+        "qualifierId": 212,
+        "value": "9.7"
+      },
+      {
+        "qualifierId": 141,
+        "value": "74.1"
+      },
+      {
+        "qualifierId": 140,
+        "value": "22.7"
+      },
+      {
+        "qualifierId": 189,
+        "value": null
+      },
+      {
+        "qualifierId": 213,
+        "value": "3.79"
+      },
+      {
+        "qualifierId": 178,
+        "value": null
+      },
+      {
+        "qualifierId": 56,
+        "value": "Back"
+      }
+    ],
+    "time_stamp": "2025-01-25T16:34:02.325Z",
+    "last_modified": "2025-01-26T00:00:58Z"
+  },
+  {
+    "id": 20870,
+    "match_id": "cfjmtr9xrz3ydur0k879qbjmc",
+    "event_id": 2768828323,
+    "local_event_id": 1071,
+    "type_id": 17,
+    "period_id": 2,
+    "time_min": 99,
+    "time_sec": 23,
+    "player_id": "50lnmkk33eoivv4ksly77hkpg",
+    "contestant_id": "e5p0ehyguld7egzhiedpdnc3w",
+    "player_name": "Y. Minteh",
+    "outcome": 1,
+    "x": 0,
+    "y": 0,
+    "qualifiers": [
+      {
+        "qualifierId": 35,
+        "value": null
+      },
+      {
+        "qualifierId": 31,
+        "value": null
+      }
+    ],
+    "time_stamp": "2025-01-25T17:02:08.046Z",
+    "last_modified": "2025-01-25T17:03:21Z"
+  },
+  {
+    "id": 20871,
+    "match_id": "cfjmtr9xrz3ydur0k879qbjmc",
+    "event_id": 2768828819,
+    "local_event_id": 727,
+    "type_id": 17,
+    "period_id": 2,
+    "time_min": 99,
+    "time_sec": 24,
+    "player_id": "8u5vfczmsnklqp9bpilrbvy8k",
+    "contestant_id": "ehd2iemqmschhj2ec0vayztzz",
+    "player_name": "J. O'Brien",
+    "outcome": 1,
+    "x": 0,
+    "y": 0,
+    "qualifiers": [
+      {
+        "qualifierId": 31,
+        "value": null
+      },
+      {
+        "qualifierId": 35,
+        "value": null
+      }
+    ],
+    "time_stamp": "2025-01-25T17:02:09.046Z",
+    "last_modified": "2025-01-25T17:04:04Z"
+  }
+]
