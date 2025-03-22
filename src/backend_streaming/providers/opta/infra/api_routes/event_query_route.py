@@ -63,9 +63,14 @@ async def get_events_by_game_id(game_id: str) -> List[dict]:
         if not events:
             raise HTTPException(
                 status_code=404,
-                detail=f"No events found for game {game_id}"
+                detail={
+                    "message": f"No events found for game {game_id}",
+                    "error_code": "EVENTS_NOT_FOUND",
+                    "action_required": True,
+                    "action_type": "RUN_SCRIPT"
+                }
             )
-            
+
         # Convert to dict for JSON response
         return [event.to_dict() for event in events]
         

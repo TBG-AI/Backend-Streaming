@@ -279,8 +279,10 @@ class SingleGameScraper:
         if raw_content.count('{') > raw_content.count('}'):
             raw_content = raw_content + '}'
             
+        
         try:
             data = json.loads(raw_content)
+            print(f"data: {data}")
             # Validate required fields
             required_fields = [self.PLAYER_NAME_DICTIONARY_KEYWORD, self.EVENTS_KEYWORD, self.HOME_KEYWORD, self.AWAY_KEYWORD]
             missing_fields = [field for field in required_fields if field not in data]
