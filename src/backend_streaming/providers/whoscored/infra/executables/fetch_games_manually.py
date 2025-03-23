@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 import argparse
-import re
+import asyncio
 
 from typing import List, Tuple
 from backend_streaming.providers.whoscored.app.services.scraper import SingleGameScraper
 from backend_streaming.providers.whoscored.app.services.run_scraper import process_game
 from backend_streaming.providers.whoscored.infra.config.config import paths
 
-def fetch_games(game_ids: List[str]) -> None:
+async def fetch_games(game_ids: List[str]) -> None:
     """Fetch events for specified game IDs"""
     for game_id in game_ids:
         print(f"\nProcessing game {game_id}...")
         try:
             scraper = SingleGameScraper(game_id)
-            process_game(game_id, scraper)
+            print(await process_game(game_id, scraper))
         except Exception as e:
             raise e
 
@@ -30,7 +30,7 @@ def main():
         game_ids = [game.stem for game in paths.raw_pagesources_dir.glob('*.txt')]
     else:
         game_ids = args.game_ids
-    fetch_games(game_ids)
+    asyncio.run(fetch_games(game_ids))
 
 if __name__ == "__main__":
     import os

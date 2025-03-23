@@ -38,6 +38,8 @@ class FileRepository:
                 return self.type_to_paths.LINEUPS / file_name
             elif file_type == 'parsed_page_sources':
                 return self.type_to_paths.PARSED_PAGE_SOURCES / file_name
+            elif file_type == "payloads":
+                return self.type_to_paths.PAYLOADS / file_name
         else:
             raise ValueError(f"Unknown file type: {file_type}")
 

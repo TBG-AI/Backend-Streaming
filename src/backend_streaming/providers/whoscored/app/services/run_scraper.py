@@ -10,7 +10,6 @@ from backend_streaming.providers.whoscored.app.services.scraper import SingleGam
 from backend_streaming.providers.whoscored.infra.config.logger import setup_game_logger
 from backend_streaming.providers.whoscored.infra.config.config import paths
 
-
 def parse_game_txt(game_txt: str) -> Tuple[str, str]:
     """
     Parse the game_txt and extract the game_id and matchCentreData.
@@ -39,13 +38,20 @@ def save_game_txt(match_id: str, match_centre_data: str) -> None:
         f.write(match_centre_data)
 
 
-async def process_game(game_id: str, scraper: SingleGameScraper) -> str:
+async def process_game(
+    game_id: str,
+    scraper: SingleGameScraper,
+    send_via_stream: bool = True
+) -> dict:
     """
     Process a single game, continuously fetching events until game completion
     or maximum duration reached.
-
+    NOTE: for manual fetches, 
     # NOTE: scraper is only passed in when running manually
     """
+    assert send_via_stream != scraper._is_manual_scraper, \
+        "Manual scrapers should not send via stream. Too error prone..."
+
     # setup
     logger = setup_game_logger(game_id)
     start_time = datetime.now()
@@ -60,6 +66,7 @@ async def process_game(game_id: str, scraper: SingleGameScraper) -> str:
         logger.info(f"Starting game processor at {start_time}")
         opta_game_id = scraper.ws_to_opta_mapping[game_id]
         streamer = SingleGameStreamer(opta_game_id)
+        payloads = []
         is_eog = False
         while not is_eog:
             # TODO: implement proper condition to check for eog...
@@ -69,21 +76,27 @@ async def process_game(game_id: str, scraper: SingleGameScraper) -> str:
                 # this populates the json_data attribute in the scraper
                 # NOTE: the ORDER of operations for fetching and updating mappings is important.
                 events = scraper.fetch_events()
-                player_data = scraper.update_player_mappings()
+                player_data = scraper.update_player_data()
                 lineup_info = scraper.extract_lineup()
                 projections = scraper.save_projections(events)
 
-                # stream into designated queue
-                await stream(
-                    streamer = streamer,
-                    data = {
-                            'projections': projections,
-                            'player_data': player_data,
-                            'lineup_info': lineup_info
-                        },
-                    logger = logger, 
-                    is_eog = is_eog
-                )
+                # construct payload and store in memory (this is in case we want to see previous data)
+                payload = {
+                    'projections': projections,
+                    'player_data': player_data,
+                    'lineup_info': lineup_info
+                }
+                payloads.append(payload)
+
+                # By default, we always send but for manual fetch we choose not to.
+                # Doesn't matter if we send tbh, but just in case things break
+                if send_via_stream:
+                    await stream(
+                        streamer = streamer,
+                        data = payload,
+                        logger = logger, 
+                        is_eog = is_eog
+                    )
                 
                 # log useful stats
                 fetch_stats['total_events'] = len(events)
@@ -97,7 +110,15 @@ async def process_game(game_id: str, scraper: SingleGameScraper) -> str:
         
         # final send through streamer to dictate end of game. 
         logger.info(f"Game processor completed. Final stats: {fetch_stats}")
-        return opta_game_id
+        scraper.file_repo.save(
+            file_type='payloads', 
+            data=payload, 
+            file_name=f"{game_id}.json"
+        )
+        return {
+            'opta_game_id': opta_game_id,
+            'payloads': payloads
+        }
         
     except Exception as e:
         logger.error(f"Fatal error in game processor: {e}", exc_info=True)

@@ -36,6 +36,10 @@ class SingleGameScraper:
         Args:
             whoscored_client: Initialized WhoScored client
         """
+        # SingleGameScraper is only used for manual fetches
+        self._is_manual_scraper = True
+
+        # NOTE: for manual fetches, game_id is a path to the file
         assert isinstance(game_id, str), f"game_id must be a string, got {type(game_id)}"
         self.game_id = game_id
         self.logger = setup_game_logger(self.game_id)
@@ -130,49 +134,43 @@ class SingleGameScraper:
         )
         return lineup_info
 
-    def update_player_mappings(self) -> List[Dict[str, Union[str, int]]]:
+    def update_player_data(self) -> List[Dict[str, Union[str, int]]]:
         """
-        Update player mappings for players that don't exist in the database.
-        Returns a dictionary of new player mappings.
+        Update player data for players that don't exist in the database.
+        NOTE: if a new player is found, the player_mappings dictionary is updated.
         """
-        updated = False 
-        new_player_data = []
+        all_player_data = []
         player_info = self._extract_player_info()
 
         for player_id, (player_name, jersey_number, ws_team_id) in player_info.items():
-            # NOTE: for now, only if they don't exist in mapping but should actually do this every time
-            # Choosing not to do it for now since don't want to overwrite Opta data (more detailed) with Whoscored.
-            if player_id not in self.player_mappings:
-                updated = True
+            first_name, last_name = self._format_names(player_name)
+            if player_id in self.player_mappings:
+                opta_id = self.player_mappings[player_id]
+            else:
+                # new player found. create opta id and update mapping
                 opta_id = self._create_opta_id()
-
-                # Create player data dictionary
-                first_name, last_name = self._format_names(player_name)
-                player_data = {
-                    'player_id': opta_id,
-                    'team_id': self.team_mappings[ws_team_id],
-                    'first_name': first_name,
-                    'last_name': last_name,
-                    'short_first_name': first_name,
-                    'short_last_name': last_name,
-                    'match_name': player_name,
-                    'shirt_number': jersey_number
-                }
-                # update relevant data  
-                # NOTE: Assumes messages are processed within a week (i.e. before the same team plays again)
                 self.player_mappings[player_id] = opta_id
-                self.scraper_repo.insert_player_data(
-                    session=get_session(),
-                    **player_data
-                )
-                # store for return
-                new_player_data.append(player_data)
 
-        if updated:
-            self.logger.info(f"Added {len(new_player_data)} new player mappings")
-            self.file_repo.save("player", data=self.player_mappings)
-        
-        return new_player_data
+            # updating player data each time to keep up to date.
+            player_data = {
+                'player_id': opta_id,
+                'team_id': self.team_mappings[ws_team_id],
+                'first_name': first_name,
+                'last_name': last_name,
+                'short_first_name': first_name,
+                'short_last_name': last_name,
+                'match_name': player_name,
+                'shirt_number': jersey_number
+            }
+            all_player_data.append(player_data)
+            self.scraper_repo.insert_player_data(
+                session=get_session(),
+                **player_data
+            )
+
+        self.logger.info(f"Updated {len(all_player_data)} players")
+        self.file_repo.save("player", data=self.player_mappings)
+        return all_player_data
 
 
     ###################################

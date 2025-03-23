@@ -20,6 +20,7 @@ class PathConfig:
             self.lineups_dir,
             self.parsed_page_sources_dir,
             self.game_logs_dir,
+            self.payloads_dir,
         ]
         
         for directory in directories:
@@ -66,6 +67,10 @@ class PathConfig:
         return self.manual_scraping_dir / "logs"
     
     @property
+    def payloads_dir(self) -> Path:
+        return self.manual_scraping_dir / "payloads"
+    
+    @property
     def ws_to_opta_match_mapping_path(self) -> Path:
         return self.mappings_dir / "ws_to_opta_match_ids.json"
     
@@ -110,6 +115,10 @@ class TypeToPaths:
     @property
     def GAME_LOGS(self) -> Path:
         return self.paths.game_logs_dir
+    
+    @property
+    def PAYLOADS(self) -> Path:
+        return self.paths.payloads_dir
 
 # @dataclass(frozen=True)
 # class TimeConfig:

@@ -17,7 +17,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 # Include your router
-app.include_router(all_routes.router, prefix="/provider")
+app.include_router(all_routes.router, prefix="/streaming")
 # app.include_router(event_query_route.router, prefix="/provider")
 # app.include_router(get_lineup_route.router, prefix="/provider")
 # app.include_router(admin_route.router, prefix="/provider")

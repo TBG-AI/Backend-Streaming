@@ -1,7 +1,7 @@
 # TODO: currenty throwing all routes in one file. modularize this later.
 import os
 import logging
-
+import time
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException
 from backend_streaming.providers.opta.infra.repo.match_projection import MatchProjectionRepository
@@ -24,6 +24,7 @@ class ParseGameTxtRequest(BaseModel):
     Represents a request to parse a game txt file.
     """
     game_txt: str
+    send_via_stream: bool = False
 
 
 def get_file_repository(logger: Optional[logging.Logger] = None) -> FileRepository:
@@ -45,6 +46,7 @@ async def get_events_by_ids(request: EventIdsRequest) -> List[dict]:
             session=get_session(),
             event_ids=request.event_ids
         )        
+        print(events)
         # conversion to dict to stay consistent with streamer's send_message method
         # NOTE: calling MatchProjectionModel's to_dict method.
         return [event.to_dict() for event in events]
@@ -62,12 +64,19 @@ async def fetch_game_manually(request: ParseGameTxtRequest) -> dict:
     """
     try:
         match_id, match_centre_data = parse_game_txt(request.game_txt)
-
         save_game_txt(match_id, match_centre_data)
         scraper = SingleGameScraper(match_id)
-        opta_game_id = await process_game(match_id, scraper)
+        result =  await process_game(
+            game_id=match_id, 
+            scraper=scraper,
+            # NOTE: by default, this is false
+            send_via_stream=request.send_via_stream
+        )
         return {
-            "opta_game_id": opta_game_id,
+            "opta_game_id": result['opta_game_id'],
+            # just returning the last payload since this method is designed to be used
+            # to get the events at the end of the game.
+            "payload": result['payloads'][-1]
         }
 
     except Exception as e:
@@ -76,16 +85,17 @@ async def fetch_game_manually(request: ParseGameTxtRequest) -> dict:
             detail=f"Failed to fetch game: {str(e)}"
         )
 
-@router.get("/is_game_fetched/{opta_game_id}")
-async def is_game_fetched(opta_game_id: str) -> bool:
-    """
-    Given the opta_game_id, check if the game has been fetched.
-    """
-    file_repo = get_file_repository()
-    # ws_game_id = file_repo.load(file_type='match')[opta_game_id]
-    opta_to_ws_mapping = file_repo.reverse(file_repo.load(file_type='match'))
-    ws_game_id = opta_to_ws_mapping[opta_game_id]
-    return os.path.exists(paths.manual_scraping_dir / f"{ws_game_id}.txt")
+# TODO: DEPRECATED method. leaving for now just in case.
+# @router.get("/is_game_fetched/{opta_game_id}")
+# async def is_game_fetched(opta_game_id: str) -> bool:
+#     """
+#     Given the opta_game_id, check if the game has been fetched.
+#     """
+#     file_repo = get_file_repository()
+#     # ws_game_id = file_repo.load(file_type='match')[opta_game_id]
+#     opta_to_ws_mapping = file_repo.reverse(file_repo.load(file_type='match'))
+#     ws_game_id = opta_to_ws_mapping[opta_game_id]
+#     return os.path.exists(paths.manual_scraping_dir / f"{ws_game_id}.txt")
 
 
 ################
@@ -102,8 +112,6 @@ async def get_events_by_game_id(game_id: str) -> List[dict]:
     try:
         # Create repository with session factory
         repo = MatchProjectionRepository(get_session)
-        
-        # Get events
         events = repo.get_match_state(game_id)
         if not events:
             raise HTTPException(
