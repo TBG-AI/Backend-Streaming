@@ -72,6 +72,7 @@ async def fetch_game_manually(request: ParseGameTxtRequest) -> dict:
             # NOTE: by default, this is false
             send_via_stream=request.send_via_stream
         )
+        print(f"opta_game_id: {result['opta_game_id']}")
         return {
             "opta_game_id": result['opta_game_id'],
             # just returning the last payload since this method is designed to be used

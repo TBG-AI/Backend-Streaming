@@ -6,7 +6,7 @@ echo "Current directory: $(pwd)"
 if [ -z "$1" ]; then
     echo "Error: No environment file specified"
     echo "Usage: ./run.sh <path-to-env-file>"
-    echo "Example: ./run.sh .env.test"
+    echo "Example: ./run.sh .env.local"
     exit 1
 fi
 
