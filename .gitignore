@@ -53,3 +53,11 @@ debug.py
 # cache
 src/backend_streaming/providers/whoscored/infra/data/WhoScored/
 
+# analytics
+analysis/
+debug/
+
+# data
+src/backend_streaming/providers/whoscored/infra/data/FBref/
+src/backend_streaming/providers/whoscored/infra/data/WhoScored/
+
