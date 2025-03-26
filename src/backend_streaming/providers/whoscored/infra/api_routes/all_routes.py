@@ -64,11 +64,13 @@ async def fetch_game_manually(request: ParseGameTxtRequest) -> dict:
     """
     try:
         match_id, match_centre_data = parse_game_txt(request.game_txt)
-        save_game_txt(match_id, match_centre_data)
+        # TODO: use db instead of local file
+        # save_game_txt(match_id, match_centre_data)
         scraper = SingleGameScraper(match_id)
         result =  await process_game(
             game_id=match_id, 
             scraper=scraper,
+            match_centre_data=match_centre_data,
             # NOTE: by default, this is false
             send_via_stream=request.send_via_stream
         )

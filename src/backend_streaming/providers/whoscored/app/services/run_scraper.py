@@ -3,7 +3,7 @@ import asyncio
 import logging
 import json
 import re
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from datetime import datetime
 from backend_streaming.streamer.streamer import SingleGameStreamer
 from backend_streaming.providers.whoscored.app.services.scraper import SingleGameScraper
@@ -41,6 +41,7 @@ def save_game_txt(match_id: str, match_centre_data: str) -> None:
 async def process_game(
     game_id: str,
     scraper: SingleGameScraper,
+    match_centre_data: Optional[str] = None,
     send_via_stream: bool = True
 ) -> dict:
     """
@@ -75,7 +76,7 @@ async def process_game(
             try:
                 # this populates the json_data attribute in the scraper
                 # NOTE: the ORDER of operations for fetching and updating mappings is important.
-                events = scraper.fetch_events()
+                events = scraper.fetch_events(match_centre_data)
                 player_data = scraper.update_player_data()
                 lineup_info = scraper.extract_lineup()
                 projections = scraper.save_projections(events)
@@ -110,11 +111,12 @@ async def process_game(
         
         # final send through streamer to dictate end of game. 
         logger.info(f"Game processor completed. Final stats: {fetch_stats}")
-        scraper.file_repo.save(
-            file_type='payloads', 
-            data=payload, 
-            file_name=f"{game_id}.json"
-        )
+        # TODO: instead of saving locally, save to db.
+        # scraper.file_repo.save(
+        #     file_type='payloads', 
+        #     data=payload, 
+        #     file_name=f"{game_id}.json"
+        # )
         return {
             'opta_game_id': opta_game_id,
             'payloads': payloads

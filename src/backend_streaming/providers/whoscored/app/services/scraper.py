@@ -64,25 +64,28 @@ class SingleGameScraper:
         self.player_mappings = self.file_repo.load('player')
         self.team_mappings = self.file_repo.load('team')
 
-    def fetch_events(self) -> dict:
+    def fetch_events(self, page_source: Optional[str] = None) -> dict:
         """
         Process game from raw pagesource and save to JSON.
         Will also save as match projection rows to update db and send via streamer.
         """
-        # Read raw pagesource
-        page_source = self.file_repo.load(
-            file_type='raw_pagesources', 
-            is_txt=True, 
-            file_name=f"{self.game_id}.txt"
-        )
+        if not page_source:
+            # Read raw pagesource from local file
+            # TODO: need to change to load from db instead of local file
+            page_source = self.file_repo.load(
+                file_type='raw_pagesources', 
+                is_txt=True, 
+                file_name=f"{self.game_id}.txt"
+            )
         # NOTE: There is a LOT of information stored in the json_data (not just events). 
         # Therefore, saving as an attribute to use elsewhere
         self.json_data = self._format_pagesource(page_source)
-        self.file_repo.save(
-            file_type='parsed_page_sources', 
-            data=self.json_data, 
-            file_name=f"{self.game_id}.json"
-        )
+        # TODO: instead of saving locally, save to db.
+        # self.file_repo.save(
+        #     file_type='parsed_page_sources', 
+        #     data=self.json_data, 
+        #     file_name=f"{self.game_id}.json"
+        # )
         # Extract events
         if "events" not in self.json_data:
             self.logger.warning(f"No events found in game {self.game_id}")
@@ -105,12 +108,14 @@ class SingleGameScraper:
                 # NOTE: this player info should immdiately get updated in the 
                 self.logger.warning(f"Undetected player {event.get('playerId')} for event {event['id']}")
                 continue
-        try:
-            if projections:
-                self.proj_repo.save_match_state(projections)
-        except Exception as e:
-            self.logger.error(f"Failed to save projections: {e}")
-            raise
+        
+        # TODO: instead of saving locally, save to db.
+        # try:
+        #     if projections:
+        #         self.proj_repo.save_match_state(projections)
+        # except Exception as e:
+        #     self.logger.error(f"Failed to save projections: {e}")
+        #     raise
             
         return projections
         
@@ -127,11 +132,12 @@ class SingleGameScraper:
             self.HOME_KEYWORD: home_lineup,
             self.AWAY_KEYWORD: away_lineup
         }
-        self.file_repo.save(
-            file_type='lineups',
-            data=lineup_info,
-            file_name=f"{self.game_id}.json"
-        )
+        # TODO: instead of saving locally, save to db.
+        # self.file_repo.save(
+        #     file_type='lineups',
+        #     data=lineup_info,
+        #     file_name=f"{self.game_id}.json"
+        # )
         return lineup_info
 
     def update_player_data(self) -> List[Dict[str, Union[str, int]]]:
@@ -169,6 +175,7 @@ class SingleGameScraper:
             )
 
         self.logger.info(f"Updated {len(all_player_data)} players")
+        # TODO: instead of saving locally, save to db. Keeping this for now though since we need proper mappings
         self.file_repo.save("player", data=self.player_mappings)
         return all_player_data
 
