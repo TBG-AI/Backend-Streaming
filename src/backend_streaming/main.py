@@ -22,6 +22,12 @@ app.include_router(all_routes.router, prefix="/streaming")
 # app.include_router(get_lineup_route.router, prefix="/provider")
 # app.include_router(admin_route.router, prefix="/provider")
 
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    # TODO
+    pass
+
 if __name__ == "__main__":
     uvicorn.run(
         "backend_streaming.main:app",
