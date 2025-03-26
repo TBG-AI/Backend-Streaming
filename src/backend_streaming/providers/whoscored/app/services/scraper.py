@@ -94,7 +94,7 @@ class SingleGameScraper:
         self.logger.info(f"Extracted {len(self.json_data['events'])} events from game {self.game_id}")
         return self.json_data['events']
     
-    def save_projections(self, events: List[dict]):
+    def save_projections(self, events: List[dict]) -> List[dict]:
         """
         Converting events to projections and saving them to match_projections table.
         """
@@ -109,13 +109,12 @@ class SingleGameScraper:
                 self.logger.warning(f"Undetected player {event.get('playerId')} for event {event['id']}")
                 continue
         
-        # TODO: instead of saving locally, save to db.
-        # try:
-        #     if projections:
-        #         self.proj_repo.save_match_state(projections)
-        # except Exception as e:
-        #     self.logger.error(f"Failed to save projections: {e}")
-        #     raise
+        try:
+            if projections:
+                self.proj_repo.save_match_state(projections)
+        except Exception as e:
+            self.logger.error(f"Failed to save projections: {e}")
+            raise
             
         return projections
         

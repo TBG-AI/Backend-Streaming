@@ -93,10 +93,10 @@ async def process_game(
                 # Doesn't matter if we send tbh, but just in case things break
                 if send_via_stream:
                     await stream(
-                        streamer = streamer,
-                        data = payload,
-                        logger = logger, 
-                        is_eog = is_eog
+                        streamer=streamer,
+                        data=payload,
+                        logger=logger, 
+                        is_eog=is_eog
                     )
                 
                 # log useful stats
