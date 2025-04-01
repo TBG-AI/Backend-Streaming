@@ -1,0 +1,59 @@
+# docker-compose.yml
+
+networks:
+  test_network:
+    external: true
+
+name: streaming_microservice_test
+
+services:
+  postgres_streaming:
+    image: postgres:16-alpine
+    container_name: postgres_test_streaming
+    environment:
+      POSTGRES_USER: jlee
+      POSTGRES_PASSWORD: ""
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_DB: streaming-db-local
+    ports:
+      - "5429:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jlee -d streaming-db-local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    
+
+  app:
+    build:
+      context: ../
+      dockerfile: Dockerfile
+    container_name: streaming-microservice
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://jlee@postgres_streaming:5432/streaming-db-local
+      - ASYNC_DATABASE_URL=postgresql+asyncpg://jlee@postgres_streaming:5432/streaming-db-local
+    env_file:
+      - .env.test
+    volumes:
+      - ../:/app
+    depends_on:
+      postgres_streaming:
+        condition: service_healthy
+    ports:
+      - "8001:8001"
+    # We'll start the app without the schema creation since we're using SQL dump
+    command: >
+      bash -c "
+        echo 'Waiting for services to be ready...' &&
+        echo 'Starting the application...' &&
+        uvicorn src.backend_streaming.main:app --host 0.0.0.0 --port 8001 --reload
+      "
+    networks:
+      - test_network
+      - default
+
+volumes:
+  postgres_data: 

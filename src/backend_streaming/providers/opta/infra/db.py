@@ -28,5 +28,4 @@ def init_db():
 def get_session():
     return SessionLocal()
 
-
-
+init_db()
