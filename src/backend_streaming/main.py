@@ -25,7 +25,7 @@ app.include_router(all_routes.router, prefix="/streaming")
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
-    return {"status": "ok"}
+    return {"status": "healthy"}
 
 if __name__ == "__main__":
     uvicorn.run(
