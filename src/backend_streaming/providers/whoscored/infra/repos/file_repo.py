@@ -29,6 +29,8 @@ class FileRepository:
             return self.type_to_paths.TEAM
         elif file_type == 'match':
             return self.type_to_paths.MATCH
+        elif file_type == "standard_team_name":
+            return self.type_to_paths.STANDARD_TEAM_NAME
         
         # NOTE: these directories require file name since they are game specific
         elif file_name:

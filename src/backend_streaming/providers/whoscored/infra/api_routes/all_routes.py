@@ -1,7 +1,8 @@
 # TODO: currenty throwing all routes in one file. modularize this later.
 import os
 import logging
-import time
+
+from datetime import datetime
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException
 from backend_streaming.providers.opta.infra.repo.match_projection import MatchProjectionRepository
@@ -25,6 +26,12 @@ class ParseGameTxtRequest(BaseModel):
     """
     game_txt: str
     send_via_stream: bool = False
+
+class ScrapeFixturesRequest(BaseModel):
+    """
+    Represents a request to scrape the schedule for a given league and season.
+    """
+    fixtures_dict: dict
 
 
 def get_file_repository(logger: Optional[logging.Logger] = None) -> FileRepository:
@@ -57,6 +64,7 @@ async def get_events_by_ids(request: EventIdsRequest) -> List[dict]:
             detail=f"Failed to retrieve events: {str(e)}"
         )
     
+    
 @router.post("/fetch_game_manually")
 async def fetch_game_manually(request: ParseGameTxtRequest) -> dict:
     """
@@ -87,25 +95,64 @@ async def fetch_game_manually(request: ParseGameTxtRequest) -> dict:
             status_code=500,
             detail=f"Failed to fetch game: {str(e)}"
         )
+    
+    
+@router.post("/scrape_fixtures")
+async def scrape_fixtures(request: ScrapeFixturesRequest) -> dict:
+    """
+    Given the league and season, scrape the schedule for the given month.
+    This is all the fixtures for EPL 24-25 season, April 2025: https://www.whoscored.com/tournaments/23400/data/?d=202504
+    """
+    # TODO: hard coded for now since we only have EPL 24-25 season
+    COMPETITION_ID = "2kwbbcootiqqgmrzs6o5inle5"
+    TOURNAMENT_ID = "9n12waklv005j8r32sfjj2eqc"
+    NUMBER_OF_PERIODS = 2
+    PERIOD_LENGTH = 45
+    VAR = "1"
 
-# TODO: DEPRECATED method. leaving for now just in case.
-# @router.get("/is_game_fetched/{opta_game_id}")
-# async def is_game_fetched(opta_game_id: str) -> bool:
-#     """
-#     Given the opta_game_id, check if the game has been fetched.
-#     """
-#     file_repo = get_file_repository()
-#     # ws_game_id = file_repo.load(file_type='match')[opta_game_id]
-#     opta_to_ws_mapping = file_repo.reverse(file_repo.load(file_type='match'))
-#     ws_game_id = opta_to_ws_mapping[opta_game_id]
-#     return os.path.exists(paths.manual_scraping_dir / f"{ws_game_id}.txt")
+    # TODO: should move to separate service...
+    file_repo = get_file_repository()
+    ws_to_opta_mapping = file_repo.load('match')
+    team_mappings = file_repo.load('team')
+    standard_team_names = file_repo.load('standard_team_name')
 
 
-################
-# ADMIN ROUTES #
-################
+    data = request.fixtures_dict
+    matches = []
+    for tournament in data.get("tournaments", []):
+        matches.extend(tournament.get("matches", []))
+        
+    # Return a simplified version with only the data you need
+    matches_info = []
+    for match in matches:
+        dt = datetime.strptime(match["startTimeUtc"], "%Y-%m-%dT%H:%M:%SZ")
+        matches_info.append({
+            # TODO: possible to get the scores of the past games.
+            # currently not used since TournamentScheduleModel doesn't have field but should include 
+            # "homeScore": match.get("homeScore"),
+            # "awayScore": match.get("awayScore"),
+            "match_id": ws_to_opta_mapping[str(match.get("id"))],
+            "home_contestant_id": team_mappings[str(match.get("homeTeamId"))],  
+            "away_contestant_id": team_mappings[str(match.get("awayTeamId"))],  
+            # TODO: this needs to be the exact name frontend is using
+            "home_contestant_name": standard_team_names[match.get("homeTeamName")],
+            "away_contestant_name": standard_team_names[match.get("awayTeamName")],
+            "date": dt.date().isoformat(),
+            "time": dt.time().strftime("%H:%M:%S"),
+            "competition_id": COMPETITION_ID,
+            "tournament_id": TOURNAMENT_ID,
+            "number_of_periods": NUMBER_OF_PERIODS,
+            "period_length": PERIOD_LENGTH,
+            "var": VAR,
+        })
 
-# TODO: this is for manual verification. 
+    return {"all_matches": matches_info}
+
+    # competition_id = 2kwbbcootiqqgmrzs6o5inle5
+    # tournament_id = 9n12waklv005j8r32sfjj2eqc
+
+    
+
 @router.get("/get_events_by_game_id")
 async def get_events_by_game_id(game_id: str) -> List[dict]:
     """
@@ -136,32 +183,3 @@ async def get_events_by_game_id(game_id: str) -> List[dict]:
             detail=f"Error retrieving events: {str(e)}"
         )
 
-
-# from fastapi import APIRouter, HTTPException
-# from backend_streaming.providers.whoscored.app.services.get_lineup import GetLineupService
-
-# router = APIRouter()
-
-# @router.get("/get_lineup/{game_id}")
-# async def get_lineup(game_id: str):
-#     """
-#     Given the game_id, return the lineup for both teams.
-#     """
-#     try:
-#         get_lineup = GetLineupService(game_id)
-#         # TODO: make this into a param. for now, always convert to opta
-#         lineups = get_lineup.get_lineup(convert_to_opta=True)
-        
-#         if "error" in lineups:
-#             raise HTTPException(
-#                 status_code=404, 
-#                 detail=f"Lineup not found: {lineups['error']}"
-#             )
-            
-#         return lineups
-        
-#     except ValueError:
-#         raise HTTPException(
-#             status_code=400, 
-#             detail="Invalid game_id format"
-#         )

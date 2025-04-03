@@ -81,7 +81,10 @@ class PathConfig:
     @property
     def player_mapping_path(self) -> Path:
         return self.mappings_dir / "player_ids.json"
- 
+    
+    @property
+    def standard_team_name_mapping_path(self) -> Path:
+        return self.mappings_dir / "proper_team_name_mapping.json"
 
 @dataclass(frozen=True)
 class TypeToPaths:
@@ -95,6 +98,10 @@ class TypeToPaths:
     @property
     def TEAM(self) -> Path:
         return self.paths.team_mapping_path
+    
+    @property
+    def STANDARD_TEAM_NAME(self) -> Path:
+        return self.paths.standard_team_name_mapping_path
     
     @property
     def MATCH(self) -> Path:
