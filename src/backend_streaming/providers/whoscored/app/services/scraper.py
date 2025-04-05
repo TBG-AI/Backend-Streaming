@@ -3,7 +3,7 @@ import json
 import string
 import random
 from typing import List, Dict, Tuple, Optional, Union
-from collections import defaultdict
+from datetime import datetime
 
 from backend_streaming.providers.opta.infra.db import get_session
 from backend_streaming.providers.whoscored.infra.config.logger import setup_game_logger
@@ -223,6 +223,8 @@ class SingleGameScraper:
             """
             transformed = []
             for qualifier in qualifiers:
+                if qualifier['type']['value'] == 154:
+                    print(f"-------eventid-------\n {event['id']}")
                 transformed.append({
                     'qualifierId': qualifier['type']['value'],
                     'value': qualifier.get('value', '')
@@ -247,9 +249,10 @@ class SingleGameScraper:
             'outcome': event.get('outcomeType', {}).get('value'),
             'x': event.get('x'),
             'y': event.get('y'),
-            'qualifiers': _transform_qualifiers(event.get('qualifiers', {})) ,
-            'time_stamp': None,
-            'last_modified': None
+            'qualifiers': _transform_qualifiers(event.get('qualifiers', {})),
+            # NOTE: use these to see if it was actually updated
+            'time_stamp': datetime.now().isoformat(),
+            'last_modified': datetime.now().isoformat()
         }
         return projection    
     
