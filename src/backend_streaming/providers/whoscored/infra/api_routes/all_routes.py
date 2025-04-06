@@ -116,7 +116,6 @@ async def scrape_fixtures(request: ScrapeFixturesRequest) -> dict:
     team_mappings = file_repo.load('team')
     standard_team_names = file_repo.load('standard_team_name')
 
-
     data = request.fixtures_dict
     matches = []
     for tournament in data.get("tournaments", []):
@@ -146,12 +145,7 @@ async def scrape_fixtures(request: ScrapeFixturesRequest) -> dict:
             "var": VAR,
         })
 
-    return {"all_matches": matches_info}
-
-    # competition_id = 2kwbbcootiqqgmrzs6o5inle5
-    # tournament_id = 9n12waklv005j8r32sfjj2eqc
-
-    
+    return {"all_matches": matches_info}    
 
 @router.get("/get_events_by_game_id")
 async def get_events_by_game_id(game_id: str) -> List[dict]:
