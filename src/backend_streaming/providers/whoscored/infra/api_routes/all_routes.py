@@ -75,7 +75,8 @@ async def fetch_game_manually(request: ParseGameTxtRequest) -> dict:
         # TODO: use db instead of local file
         # save_game_txt(match_id, match_centre_data)
         scraper = SingleGameScraper(match_id)
-        result =  await process_game(
+        print(f"========== calling process_game with match_id: {match_id} ==========")
+        result = await process_game(
             game_id=match_id, 
             scraper=scraper,
             match_centre_data=match_centre_data,

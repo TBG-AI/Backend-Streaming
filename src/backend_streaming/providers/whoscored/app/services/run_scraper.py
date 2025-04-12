@@ -55,6 +55,7 @@ async def process_game(
 
     # setup
     logger = setup_game_logger(game_id)
+    print(f"========== logger: {logger} ==========")
     start_time = datetime.now()
     fetch_stats = {
         'total_fetches': 0,
@@ -77,9 +78,13 @@ async def process_game(
                 # this populates the json_data attribute in the scraper
                 # NOTE: the ORDER of operations for fetching and updating mappings is important.
                 events = scraper.fetch_events(match_centre_data)
+                print(f"---------- events ---------")
                 player_data = scraper.update_player_data()
+                print("========== player_data ==========")
                 lineup_info = scraper.extract_lineup()
+                print("========== lineup_info ==========")
                 projections = scraper.save_projections(events)
+                print("========== projections ==========")
 
                 # construct payload and store in memory (this is in case we want to see previous data)
                 payload = {
