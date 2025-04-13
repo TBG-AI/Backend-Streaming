@@ -146,7 +146,6 @@ class SingleGameScraper:
         """
         all_player_data = []
         player_info = self._extract_player_info()
-        print(f"-------player_info-------\n {player_info}")
         for player_id, (player_name, jersey_number, ws_team_id) in player_info.items():
             first_name, last_name = self._format_names(player_name)
             if player_id in self.player_mappings:
@@ -223,8 +222,6 @@ class SingleGameScraper:
             """
             transformed = []
             for qualifier in qualifiers:
-                if qualifier['type']['value'] == 154:
-                    print(f"-------eventid-------\n {event['id']}")
                 transformed.append({
                     'qualifierId': qualifier['type']['value'],
                     'value': qualifier.get('value', '')
