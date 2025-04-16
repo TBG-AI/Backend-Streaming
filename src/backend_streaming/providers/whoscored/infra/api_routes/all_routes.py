@@ -75,7 +75,8 @@ async def fetch_game_manually(request: ParseGameTxtRequest) -> dict:
         # TODO: use db instead of local file
         # save_game_txt(match_id, match_centre_data)
         scraper = SingleGameScraper(match_id)
-        result =  await process_game(
+        print(f"========== calling process_game with match_id: {match_id} ==========")
+        result = await process_game(
             game_id=match_id, 
             scraper=scraper,
             match_centre_data=match_centre_data,
@@ -103,9 +104,27 @@ async def scrape_fixtures(request: ScrapeFixturesRequest) -> dict:
     Given the league and season, scrape the schedule for the given month.
     This is all the fixtures for EPL 24-25 season, April 2025: https://www.whoscored.com/tournaments/23400/data/?d=202504
     """
-    # TODO: hard coded for now since we only have EPL 24-25 season
-    COMPETITION_ID = "2kwbbcootiqqgmrzs6o5inle5"
-    TOURNAMENT_ID = "9n12waklv005j8r32sfjj2eqc"
+    COMPETITION_ID_MAPPING = {
+        # EPL
+        "2": "2kwbbcootiqqgmrzs6o5inle5",
+        # UCL
+        "12": "12kwbbcootiqqgmrzs6o5inle5"
+    }
+    TOURNAMENT_ID_MAPPING = {
+        # EPL
+        "10316": "9n12waklv005j8r32sfjj2eqc",
+        # UCL
+        "10456": "r4wld9kxne7c53pvmtqfhyjus" 
+    }
+
+    data = request.fixtures_dict
+    # Extract IDs from the first tournament in the list
+    tournament = data.get("tournaments", [])[0]
+    competition_id = str(tournament.get("tournamentId"))
+    tournament_id = str(tournament.get("seasonId"))
+
+    COMPETITION_ID = COMPETITION_ID_MAPPING[competition_id]
+    TOURNAMENT_ID = TOURNAMENT_ID_MAPPING[tournament_id]
     NUMBER_OF_PERIODS = 2
     PERIOD_LENGTH = 45
     VAR = "1"
@@ -116,7 +135,6 @@ async def scrape_fixtures(request: ScrapeFixturesRequest) -> dict:
     team_mappings = file_repo.load('team')
     standard_team_names = file_repo.load('standard_team_name')
 
-    data = request.fixtures_dict
     matches = []
     for tournament in data.get("tournaments", []):
         matches.extend(tournament.get("matches", []))

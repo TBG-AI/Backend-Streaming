@@ -67,5 +67,32 @@
     
     "Wolves": "Wolverhampton Wanderers",
     "Wolverhampton Wanderers": "Wolverhampton Wanderers",
-    "Wolverhampton Wanderers FC": "Wolverhampton Wanderers"
+    "Wolverhampton Wanderers FC": "Wolverhampton Wanderers",
+    
+    "Real Madrid": "Real Madrid",
+    "Real Madrid CF": "Real Madrid",
+    "Real Madrid Club de Fútbol": "Real Madrid",
+    
+    "Bayern": "Bayern Munich",
+    "Bayern Munich": "Bayern Munich",
+    "FC Bayern Munich": "Bayern Munich",
+    "Bayern München": "Bayern Munich",
+    
+    "Inter": "Inter",
+    "Inter Milan": "Inter",
+    "Internazionale": "Inter",
+    "FC Internazionale Milano": "Inter",
+    
+    "PSG": "Paris Saint-Germain",
+    "Paris SG": "Paris Saint-Germain",
+    "Paris Saint-Germain": "Paris Saint-Germain",
+    "Paris Saint-Germain FC": "Paris Saint-Germain",
+    
+    "Barcelona": "Barcelona",
+    "Barça": "Barcelona",
+    "FC Barcelona": "Barcelona",
+    
+    "Dortmund": "Borussia Dortmund",
+    "BVB": "Borussia Dortmund",
+    "Borussia Dortmund": "Borussia Dortmund"
 }
