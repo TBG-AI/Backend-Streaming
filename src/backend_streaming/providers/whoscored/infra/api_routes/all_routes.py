@@ -10,6 +10,7 @@ from backend_streaming.providers.opta.infra.repo.match_projection import MatchPr
 from backend_streaming.providers.opta.infra.db import get_session
 from pydantic import BaseModel
 from backend_streaming.providers.whoscored.infra.repos.file_repo import FileRepository
+from backend_streaming.providers.whoscored.infra.repos.scraper_repo import ScraperRepository
 from backend_streaming.providers.whoscored.app.services.run_scraper import parse_game_txt, save_game_txt, process_game
 from backend_streaming.providers.whoscored.app.services.update_fixtures import process_fixtures
 from backend_streaming.providers.whoscored.app.services.scraper import SingleGameScraper
@@ -79,7 +80,7 @@ async def fetch_game_manually(request: ParseGameTxtRequest) -> dict:
         scraper = SingleGameScraper(match_id)
         print(f"========== calling process_game with match_id: {match_id} ==========")
         result = await process_game(
-            game_id=match_id, 
+        game_id=match_id, 
             scraper=scraper,
             match_centre_data=match_centre_data,
             # NOTE: by default, this is false
@@ -108,7 +109,10 @@ async def scrape_fixtures(request: ScrapeFixturesRequest) -> dict:
     """
     # Get file repository
     file_repo = get_file_repository()
-    return process_fixtures(file_repo, request.fixtures_dict)
+    # Create a scraper repository with logger
+    scraper_repo = ScraperRepository(logger=logging.getLogger("whoscored.scraper"))
+    # Pass the scraper_repo to process_fixtures
+    return process_fixtures(file_repo, request.fixtures_dict, scraper_repo)
 
 @router.get("/get_events_by_game_id")
 async def get_events_by_game_id(game_id: str) -> List[dict]:

@@ -10,12 +10,28 @@ class ScraperRepository:
     def __init__(self, logger):
         self.logger = logger
 
-    def insert_team_id(self, team_id: str) -> None:
+    def insert_team_data(self, session: Session, **team_data) -> None:
         """
-        This method is never called since teams don't change for a given season.
-        Just including for completeness sake.
+        Insert or update team data in the database.
         """
-        pass
+        self.logger.info(f"Upserting team information: opta id {team_data['team_id']} - team name {team_data['name']}")
+        try:
+            # Create an upsert statement
+            stmt = insert(TeamModel).values(team_data)
+            stmt = stmt.on_conflict_do_update(
+                index_elements=['team_id'],  # Assuming 'team_id' is the primary key
+                set_={key: stmt.excluded[key] for key in team_data if key != 'team_id'}
+            )
+
+            session.execute(stmt)
+            session.commit()
+            
+        except Exception as e:
+            session.rollback()
+            self.logger.error(f"Failed to insert or update team data: {e}")
+            raise
+        finally:
+            session.close()
 
     def insert_player_data(self, session: Session, **player_data) -> None:
         """
@@ -58,6 +74,29 @@ class ScraperRepository:
         except Exception as e:
             session.rollback()
             self.logger.error(f"Failed to insert or update player data: {e}")
+            raise
+        finally:
+            session.close()
+
+    def insert_team_data(self, session: Session, **team_data) -> None:
+        """
+        Insert or update team data in the database.
+        """
+        self.logger.info(f"Upserting team information: opta id {team_data['team_id']} - team name {team_data['name']}")
+        try:
+            # Create an upsert statement
+            stmt = insert(TeamModel).values(team_data)
+            stmt = stmt.on_conflict_do_update(
+                index_elements=['team_id'],  # Assuming 'team_id' is the primary key
+                set_={key: stmt.excluded[key] for key in team_data if key != 'team_id'}
+            )
+
+            session.execute(stmt)
+            session.commit()
+            
+        except Exception as e:
+            session.rollback()
+            self.logger.error(f"Failed to insert or update team data: {e}")
             raise
         finally:
             session.close()
