@@ -1,6 +1,7 @@
 # TODO: currenty throwing all routes in one file. modularize this later.
 import os
 import logging
+import uuid
 
 from datetime import datetime
 from typing import List, Optional
@@ -9,7 +10,9 @@ from backend_streaming.providers.opta.infra.repo.match_projection import MatchPr
 from backend_streaming.providers.opta.infra.db import get_session
 from pydantic import BaseModel
 from backend_streaming.providers.whoscored.infra.repos.file_repo import FileRepository
+from backend_streaming.providers.whoscored.infra.repos.scraper_repo import ScraperRepository
 from backend_streaming.providers.whoscored.app.services.run_scraper import parse_game_txt, save_game_txt, process_game
+from backend_streaming.providers.whoscored.app.services.update_fixtures import process_fixtures
 from backend_streaming.providers.whoscored.app.services.scraper import SingleGameScraper
 from backend_streaming.providers.whoscored.infra.config.config import paths, type_to_paths
 
@@ -77,7 +80,7 @@ async def fetch_game_manually(request: ParseGameTxtRequest) -> dict:
         scraper = SingleGameScraper(match_id)
         print(f"========== calling process_game with match_id: {match_id} ==========")
         result = await process_game(
-            game_id=match_id, 
+        game_id=match_id, 
             scraper=scraper,
             match_centre_data=match_centre_data,
             # NOTE: by default, this is false
@@ -104,66 +107,12 @@ async def scrape_fixtures(request: ScrapeFixturesRequest) -> dict:
     Given the league and season, scrape the schedule for the given month.
     This is all the fixtures for EPL 24-25 season, April 2025: https://www.whoscored.com/tournaments/23400/data/?d=202504
     """
-    COMPETITION_ID_MAPPING = {
-        # EPL
-        "2": "2kwbbcootiqqgmrzs6o5inle5",
-        # UCL
-        "12": "12kwbbcootiqqgmrzs6o5inle5"
-    }
-    TOURNAMENT_ID_MAPPING = {
-        # EPL
-        "10316": "9n12waklv005j8r32sfjj2eqc",
-        # UCL
-        "10456": "r4wld9kxne7c53pvmtqfhyjus" 
-    }
-
-    data = request.fixtures_dict
-    # Extract IDs from the first tournament in the list
-    tournament = data.get("tournaments", [])[0]
-    competition_id = str(tournament.get("tournamentId"))
-    tournament_id = str(tournament.get("seasonId"))
-
-    COMPETITION_ID = COMPETITION_ID_MAPPING[competition_id]
-    TOURNAMENT_ID = TOURNAMENT_ID_MAPPING[tournament_id]
-    NUMBER_OF_PERIODS = 2
-    PERIOD_LENGTH = 45
-    VAR = "1"
-
-    # TODO: should move to separate service...
+    # Get file repository
     file_repo = get_file_repository()
-    ws_to_opta_mapping = file_repo.load('match')
-    team_mappings = file_repo.load('team')
-    standard_team_names = file_repo.load('standard_team_name')
-
-    matches = []
-    for tournament in data.get("tournaments", []):
-        matches.extend(tournament.get("matches", []))
-        
-    # Return a simplified version with only the data you need
-    matches_info = []
-    for match in matches:
-        dt = datetime.strptime(match["startTimeUtc"], "%Y-%m-%dT%H:%M:%SZ")
-        matches_info.append({
-            # TODO: possible to get the scores of the past games.
-            # currently not used since TournamentScheduleModel doesn't have field but should include 
-            # "homeScore": match.get("homeScore"),
-            # "awayScore": match.get("awayScore"),
-            "match_id": ws_to_opta_mapping[str(match.get("id"))],
-            "home_contestant_id": team_mappings[str(match.get("homeTeamId"))],  
-            "away_contestant_id": team_mappings[str(match.get("awayTeamId"))],  
-            # TODO: this needs to be the exact name frontend is using
-            "home_contestant_name": standard_team_names[match.get("homeTeamName")],
-            "away_contestant_name": standard_team_names[match.get("awayTeamName")],
-            "date": dt.date().isoformat(),
-            "time": dt.time().strftime("%H:%M:%S"),
-            "competition_id": COMPETITION_ID,
-            "tournament_id": TOURNAMENT_ID,
-            "number_of_periods": NUMBER_OF_PERIODS,
-            "period_length": PERIOD_LENGTH,
-            "var": VAR,
-        })
-
-    return {"all_matches": matches_info}    
+    # Create a scraper repository with logger
+    scraper_repo = ScraperRepository(logger=logging.getLogger("whoscored.scraper"))
+    # Pass the scraper_repo to process_fixtures
+    return process_fixtures(file_repo, request.fixtures_dict, scraper_repo)
 
 @router.get("/get_events_by_game_id")
 async def get_events_by_game_id(game_id: str) -> List[dict]:
