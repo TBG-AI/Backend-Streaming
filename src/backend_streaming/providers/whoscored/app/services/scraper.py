@@ -94,6 +94,28 @@ class SingleGameScraper:
         self.logger.info(f"Extracted {len(self.json_data['events'])} events from game {self.game_id}")
         return self.json_data['events']
     
+    def get_score(self) -> dict:
+        """
+        Get the score from the json_data and parse it into home and away scores.
+        Returns:
+            dict: Dictionary containing 'home_score' and 'away_score' as integers
+        """
+        score_str = self.json_data['score']
+        # Split the string by ':' and strip whitespace
+        score_parts = [part.strip() for part in score_str.split(':')]
+        
+        # Convert to integers
+        try:
+            home_score = int(score_parts[0])
+            away_score = int(score_parts[1])
+        except (ValueError, IndexError):
+            raise ValueError(f"Failed to parse score string: {score_str}")
+        
+        return {
+            'home_score': home_score,
+            'away_score': away_score
+        }
+    
     def save_projections(self, events: List[dict]) -> List[dict]:
         """
         Converting events to projections and saving them to match_projections table.
