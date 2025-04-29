@@ -86,6 +86,14 @@ class PathConfig:
     def standard_team_name_mapping_path(self) -> Path:
         return self.mappings_dir / "proper_team_name_mapping.json"
 
+    @property
+    def competition_mapping_path(self) -> Path:
+        return self.mappings_dir / "competition_ids.json"
+
+    @property
+    def tournament_mapping_path(self) -> Path:
+        return self.mappings_dir / "tournament_ids.json"
+
 @dataclass(frozen=True)
 class TypeToPaths:
     """Types of files and their paths"""
@@ -126,6 +134,14 @@ class TypeToPaths:
     @property
     def PAYLOADS(self) -> Path:
         return self.paths.payloads_dir
+
+    @property
+    def COMPETITION(self) -> Path:
+        return self.paths.competition_mapping_path
+
+    @property
+    def TOURNAMENT(self) -> Path:
+        return self.paths.tournament_mapping_path
 
 # @dataclass(frozen=True)
 # class TimeConfig:

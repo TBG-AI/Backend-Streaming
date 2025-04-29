@@ -79,6 +79,7 @@ async def process_game(
                 # NOTE: the ORDER of operations for fetching and updating mappings is important.
                 events = scraper.fetch_events(match_centre_data)
                 print(f"---------- events ---------")
+                score_dict = scraper.get_score()
                 player_data = scraper.update_player_data()
                 print("========== player_data ==========")
                 lineup_info = scraper.extract_lineup()
@@ -88,6 +89,7 @@ async def process_game(
 
                 # construct payload and store in memory (this is in case we want to see previous data)
                 payload = {
+                    'score': score_dict,
                     'projections': projections,
                     'player_data': player_data,
                     'lineup_info': lineup_info
