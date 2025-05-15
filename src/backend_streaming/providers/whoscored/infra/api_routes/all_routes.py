@@ -2,6 +2,7 @@
 import os
 import logging
 import uuid
+import traceback
 
 from datetime import datetime
 from typing import List, Optional
@@ -95,6 +96,7 @@ async def fetch_game_manually(request: ParseGameTxtRequest) -> dict:
         }
 
     except Exception as e:
+        traceback.print_exc()
         raise HTTPException(
             status_code=500,
             detail=f"Failed to fetch game: {str(e)}"
