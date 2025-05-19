@@ -327,9 +327,16 @@ class SingleGameScraper:
         """
         def _format_team(team_data: dict) -> dict:
             formation = team_data['formations'][0]
+            
+            player_ids = []
+            for idx in range(len(formation['playerIds'])):
+                if int(formation['formationSlots'][idx]) == 0:
+                    pass
+                else:
+                    player_ids.append(formation['playerIds'][idx])
             opta_player_ids = [
                 self.player_mappings.get(str(pid), str(pid))
-                for pid in formation['playerIds']
+                for pid in player_ids
             ]
             return {
                 "data_type": "opta",
@@ -350,6 +357,8 @@ class SingleGameScraper:
                     "captain_id": self.player_mappings[str(formation['captainPlayerId'])] 
                 }
             }
+
+        
         
         home_lineup = _format_team(self.json_data["home"])
         away_lineup = _format_team(self.json_data["away"])

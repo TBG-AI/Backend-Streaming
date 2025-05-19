@@ -61,3 +61,5 @@ debug/
 src/backend_streaming/providers/whoscored/infra/data/FBref/
 src/backend_streaming/providers/whoscored/infra/data/WhoScored/
 
+# local history
+.history
